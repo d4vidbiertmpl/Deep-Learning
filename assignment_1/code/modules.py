@@ -155,14 +155,14 @@ class LeakyReLUModule(object):
 
         self.out_mask = x <= 0
         # copy fixes a weird bug with the unit tests
-        _x = np.copy(x)
-        _x[self.out_mask] *= self.neg_slope
+        out = np.copy(x)
+        out[self.out_mask] *= self.neg_slope
 
         ########################
         # END OF YOUR CODE    #
         #######################
 
-        return _x
+        return out
 
     def backward(self, dout):
         """

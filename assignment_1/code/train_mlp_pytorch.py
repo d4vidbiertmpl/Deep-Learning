@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import torch
 from torch import nn
 from torch import optim
-import torch.nn.functional as F
 
 from mlp_pytorch import MLP
 import cifar10_utils

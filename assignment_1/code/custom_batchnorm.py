@@ -69,15 +69,15 @@ class CustomBatchNormAutograd(nn.Module):
         #######################
 
         assert input.size(1) == self.n_neurons, 'Number of input channels is: {} but we expected {}'.format(
-                                                                                        input.size(1), self.n_neurons)
+            input.size(1), self.n_neurons)
 
-        input_mean = input.mean(axis=0)
-        input_var = input.var(axis=0, unbiased=False)
+        input_mean = input.mean(dim=0)
+        input_var = input.var(dim=0, unbiased=False)
         input_norm = (input - input_mean) / torch.sqrt(input_var + self.eps)
         out = self.gamma * input_norm + self.beta
 
         ########################
-        # END OF YOUR CODE    #
+        # END OF YOUR CODE    #aA>YS<
         #######################
 
         return out
@@ -107,10 +107,10 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
         Compute the batch normalization
 
         Args:
-          ctx: context object handling storing and retrival of tensors and constants and specifying
+          ctx: context object handling storing and retrieval of tensors and constants and specifying
                whether tensors need gradients in backward pass
           input: input tensor of shape (n_batch, n_neurons)
-          gamma: variance scaling tensor, applied per neuron, shpae (n_neurons)
+          gamma: variance scaling tensor, applied per neuron, shape (n_neurons)
           beta: mean bias tensor, applied per neuron, shpae (n_neurons)
           eps: small float added to the variance for stability
         Returns:
@@ -128,6 +128,20 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
+
+        assert input.size(1) == gamma.size(0), \
+            'Number of input channels ({}) do not match the size of gamma ({})'.format(input.size(1), gamma.size(0))
+
+        assert input.size(1) == beta.size(0), \
+            'Number of input channels ({}) do not match the size of beta ({})'.format(input.size(1), beta.size(0))
+
+        input_mean = torch.mean(input, dim=0)
+        input_var = torch.var(input, dim=0, unbiased=False)
+        norm_term = torch.sqrt(input_var + eps)
+        input_norm = (input - input_mean) / norm_term
+        out = gamma * input_norm + beta
+
+        ctx.save_for_backward(input, input_norm, norm_term, gamma)
 
         ########################
         # END OF YOUR CODE    #
@@ -155,6 +169,27 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
+        # Orientated myself at best practises from https://pytorch.org/docs/stable/notes/extending.html
+
+        input, input_norm, norm_term, gamma = ctx.saved_tensors
+        grad_input = grad_gamma = grad_beta = None
+
+        # Gradient for input
+        if ctx.needs_input_grad[0]:
+            batch_size = input.size(0)
+            grad_output_sum = torch.sum(grad_output, dim=0)
+            go_ni_sum = torch.sum(grad_output * input_norm, dim=0)
+            _norm = torch.div(gamma, batch_size * norm_term)
+            _sum = batch_size * grad_output - grad_output_sum - input_norm * go_ni_sum
+            grad_input = _norm * _sum
+
+        # Gradient for gamma
+        if ctx.needs_input_grad[1]:
+            grad_gamma = torch.sum(grad_output * input_norm, dim=0)
+
+        # Gradient for beta
+        if ctx.needs_input_grad[2]:
+            grad_beta = torch.sum(grad_output, dim=0)
 
         ########################
         # END OF YOUR CODE    #
@@ -193,6 +228,12 @@ class CustomBatchNormManualModule(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
 
+        self.n_neurons = n_neurons
+        self.eps = eps
+
+        self.gamma = nn.Parameter(torch.ones(n_neurons))
+        self.beta = nn.Parameter(torch.zeros(n_neurons))
+
         ########################
         # END OF YOUR CODE    #
         #######################
@@ -215,6 +256,12 @@ class CustomBatchNormManualModule(nn.Module):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
+
+        assert input.size(1) == self.n_neurons, 'Number of input channels is: {} but we expected {}'.format(
+            input.size(1), self.n_neurons)
+
+        bn_fct = CustomBatchNormManualFunction()
+        out = bn_fct.apply(input, self.gamma, self.beta, self.eps)
 
         ########################
         # END OF YOUR CODE    #

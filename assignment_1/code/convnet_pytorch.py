@@ -6,6 +6,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import torch
+
+from torch import nn
+
 
 class ConvNet(nn.Module):
     """
@@ -30,7 +34,49 @@ class ConvNet(nn.Module):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+
+        super(ConvNet, self).__init__()
+
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        self.output_size = 512
+
+        self.net = nn.Sequential(
+            nn.Conv2d(n_channels, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(3, stride=2, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.MaxPool2d(3, stride=2, padding=1),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(3, stride=2, padding=1),
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(3, stride=2, padding=1),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(3, stride=2, padding=1),
+        )
+
+        self.last_linear = nn.Linear(self.output_size, n_classes)
+
         ########################
         # END OF YOUR CODE    #
         #######################
@@ -52,7 +98,11 @@ class ConvNet(nn.Module):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
-        raise NotImplementedError
+
+        net_out = self.net(x)
+        net_out_reshape = net_out.view(-1, self.output_size)
+        out = self.last_linear(net_out_reshape)
+
         ########################
         # END OF YOUR CODE    #
         #######################

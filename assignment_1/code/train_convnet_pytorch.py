@@ -6,11 +6,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import pickle
 import argparse
-import numpy as np
 import os
 from convnet_pytorch import ConvNet
 import cifar10_utils
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+import torch
+from torch import nn
+from torch import optim
 
 # Default constants
 LEARNING_RATE_DEFAULT = 1e-4
@@ -46,12 +53,13 @@ def accuracy(predictions, targets):
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+    corr_pred = torch.sum(torch.eq(torch.argmax(predictions, dim=1), targets)).item()
+    acc = corr_pred / predictions.size()[0]
     ########################
     # END OF YOUR CODE    #
     #######################
 
-    return accuracy
+    return acc
 
 
 def train():
@@ -69,7 +77,91 @@ def train():
     ########################
     # PUT YOUR CODE HERE  #
     #######################
-    raise NotImplementedError
+
+    # TODO params and tensosrs to device
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    batch_size = FLAGS.batch_size
+    learning_rate = FLAGS.learning_rate
+
+    cifar_data = cifar10_utils.get_cifar10(DATA_DIR_DEFAULT)
+
+    train_data = cifar_data['train']
+    test_data = cifar_data['test']
+
+    input_channels = train_data.images.shape[1]
+    n_classes = train_data.labels.shape[1]
+
+    x_test, y_test = test_data.images, test_data.labels
+    x_test = torch.from_numpy(x_test).to(device)
+    y_test = torch.from_numpy(np.argmax(y_test, axis=1)).type(torch.LongTensor).to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    model = ConvNet(input_channels, n_classes).to(device)
+
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    # Train and Test losses
+    losses = [[], []]
+    # Train and Test accuracies
+    accuracies = [[], []]
+
+    for iteration in np.arange(FLAGS.max_steps):
+        x, y = train_data.next_batch(batch_size)
+        x = torch.from_numpy(x).to(device)
+        y = torch.from_numpy(np.argmax(y, axis=1)).type(torch.LongTensor).to(device)
+
+        train_output = model.forward(x)
+        loss = criterion(train_output, y)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if iteration % FLAGS.eval_freq == 0 or iteration == FLAGS.max_steps - 1:
+            # Second forward pass for test set
+            test_output = model.forward(x_test)
+
+            # Calculate losses
+            train_loss = criterion.forward(train_output, y)
+            losses[0].append(train_loss)
+
+            test_loss = criterion.forward(test_output, y_test)
+            losses[1].append(test_loss)
+
+            # Calculate accuracies
+            train_acc = accuracy(train_output, y)
+            test_acc = accuracy(test_output, y_test)
+            accuracies[0].append(train_acc)
+            accuracies[1].append(test_acc)
+
+            print("Iteration {}, Train loss: {}, Train accuracy: {}, Test accuracy: {}".format(iteration, train_loss,
+                                                                                               train_acc, test_acc))
+
+    fig = plt.figure(figsize=(25, 10), dpi=200)
+    fig.suptitle('PyTorch MLP: Losses and Accuracies', fontsize=28)
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax2 = fig.add_subplot(1, 2, 2)
+
+    ax1.plot(losses[0], linewidth=3, color="g", label="Train loss")
+    ax1.plot(losses[1], linewidth=3, color="c", label="Test loss")
+    ax2.plot(accuracies[0], linewidth=3, color="g", label="Train accuracy")
+    ax2.plot(accuracies[1], linewidth=3, color="c", label="Test accuracy")
+
+    ax1.set_xlabel('$Iteration$', fontsize=20)
+    ax1.set_ylabel('$Loss$', fontsize=20)
+    ax2.set_xlabel('$Iteration$', fontsize=20)
+    ax2.set_ylabel('$Accuracy$', fontsize=20)
+
+    ax1.legend(fontsize=20)
+    ax2.legend(fontsize=20)
+
+    plt.savefig("../figures/pytorch_convnet.png")
+    plt.show()
+
+    with open('results_convnet.pkl', 'wb') as f:
+        pickle.dump([losses, accuracies], f)
+
     ########################
     # END OF YOUR CODE    #
     #######################
