@@ -78,7 +78,9 @@ def train():
     # PUT YOUR CODE HERE  #
     #######################
 
-    # TODO params and tensosrs to device
+    if FLAGS.data_dir:
+        DATA_DIR_DEFAULT = FLAGS.data_dir
+
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     batch_size = FLAGS.batch_size
@@ -92,10 +94,6 @@ def train():
     input_channels = train_data.images.shape[1]
     n_classes = train_data.labels.shape[1]
 
-    x_test, y_test = test_data.images, test_data.labels
-    x_test = torch.from_numpy(x_test).to(device)
-    y_test = torch.from_numpy(np.argmax(y_test, axis=1)).type(torch.LongTensor).to(device)
-
     criterion = nn.CrossEntropyLoss()
     model = ConvNet(input_channels, n_classes).to(device)
 
@@ -105,6 +103,9 @@ def train():
     losses = [[], []]
     # Train and Test accuracies
     accuracies = [[], []]
+
+    # True iteration for plotting
+    iterations = []
 
     for iteration in np.arange(FLAGS.max_steps):
         x, y = train_data.next_batch(batch_size)
@@ -119,6 +120,12 @@ def train():
         optimizer.step()
 
         if iteration % FLAGS.eval_freq == 0 or iteration == FLAGS.max_steps - 1:
+            iterations.append(iteration)
+
+            x_test, y_test = test_data.next_batch(10 * batch_size)
+            x_test = torch.from_numpy(x_test).to(device)
+            y_test = torch.from_numpy(np.argmax(y_test, axis=1)).type(torch.LongTensor).to(device)
+
             # Second forward pass for test set
             test_output = model.forward(x_test)
 
@@ -139,14 +146,14 @@ def train():
                                                                                                train_acc, test_acc))
 
     fig = plt.figure(figsize=(25, 10), dpi=200)
-    fig.suptitle('PyTorch MLP: Losses and Accuracies', fontsize=28)
+    fig.suptitle('PyTorch ConvNet: Losses and Accuracies', fontsize=28)
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
 
-    ax1.plot(losses[0], linewidth=3, color="g", label="Train loss")
-    ax1.plot(losses[1], linewidth=3, color="c", label="Test loss")
-    ax2.plot(accuracies[0], linewidth=3, color="g", label="Train accuracy")
-    ax2.plot(accuracies[1], linewidth=3, color="c", label="Test accuracy")
+    ax1.plot(iterations, losses[0], linewidth=3, color="g", label="Train loss")
+    ax1.plot(iterations, losses[1], linewidth=3, color="c", label="Test loss")
+    ax2.plot(iterations, accuracies[0], linewidth=3, color="g", label="Train accuracy")
+    ax2.plot(iterations, accuracies[1], linewidth=3, color="c", label="Test accuracy")
 
     ax1.set_xlabel('$Iteration$', fontsize=20)
     ax1.set_ylabel('$Loss$', fontsize=20)

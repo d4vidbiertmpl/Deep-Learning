@@ -81,6 +81,9 @@ def train():
     else:
         dnn_hidden_units = []
 
+    if FLAGS.data_dir:
+        DATA_DIR_DEFAULT = FLAGS.data_dir
+
     # Get negative slope parameter for LeakyReLU
     neg_slope = FLAGS.neg_slope
 
@@ -110,6 +113,9 @@ def train():
     # Train and Test accuracies
     accuracies = [[], []]
 
+    # True iteration for plotting
+    iterations = []
+
     for iteration in np.arange(FLAGS.max_steps):
 
         x, y = train_data.next_batch(batch_size)
@@ -125,6 +131,8 @@ def train():
             linear.params['bias'] -= FLAGS.learning_rate * linear.grads['bias']
 
         if iteration % FLAGS.eval_freq == 0 or iteration == FLAGS.max_steps - 1:
+            iterations.append(iteration)
+
             # Second forward pass for test set
             test_output = model.forward(x_test)
 
@@ -148,10 +156,10 @@ def train():
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
 
-    ax1.plot(losses[0], linewidth=3, color="g", label="Train loss")
-    ax1.plot(losses[1], linewidth=3, color="c", label="Test loss")
-    ax2.plot(accuracies[0], linewidth=3, color="g", label="Train accuracy")
-    ax2.plot(accuracies[1], linewidth=3, color="c", label="Test accuracy")
+    ax1.plot(iterations, losses[0], linewidth=3, color="g", label="Train loss")
+    ax1.plot(iterations, losses[1], linewidth=3, color="c", label="Test loss")
+    ax2.plot(iterations, accuracies[0], linewidth=3, color="g", label="Train accuracy")
+    ax2.plot(iterations, accuracies[1], linewidth=3, color="c", label="Test accuracy")
 
     ax1.set_xlabel('$Iteration$', fontsize=20)
     ax1.set_ylabel('$Loss$', fontsize=20)

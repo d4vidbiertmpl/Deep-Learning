@@ -8,11 +8,8 @@
 #SBATCH --mem=60000M
 #SBATCH --partition=gpu_shared_course
 #SBATCH --gres=gpu:1
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=david.biertimpel@protonmail.com
 
 module purge
-module load eb
 
 module load 2019
 module load CUDA/10.0.130
