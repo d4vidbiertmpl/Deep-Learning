@@ -159,22 +159,22 @@ def train():
                                                                                                train_acc, test_acc))
 
     fig = plt.figure(figsize=(25, 10), dpi=200)
-    fig.suptitle('PyTorch MLP: Losses and Accuracies', fontsize=28)
+    fig.suptitle('PyTorch MLP: Losses and Accuracies', fontsize=40)
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
 
-    ax1.plot(iterations, losses[0], linewidth=3, color="g", label="Train loss")
-    ax1.plot(iterations, losses[1], linewidth=3, color="c", label="Test loss")
-    ax2.plot(iterations, accuracies[0], linewidth=3, color="g", label="Train accuracy")
-    ax2.plot(iterations, accuracies[1], linewidth=3, color="c", label="Test accuracy")
+    ax1.plot(iterations, losses[0], linewidth=4, color="g", label="Train loss")
+    ax1.plot(iterations, losses[1], linewidth=4, color="c", label="Test loss")
+    ax2.plot(iterations, accuracies[0], linewidth=4, color="g", label="Train accuracy")
+    ax2.plot(iterations, accuracies[1], linewidth=4, color="c", label="Test accuracy")
 
-    ax1.set_xlabel('$Iteration$', fontsize=20)
-    ax1.set_ylabel('$Loss$', fontsize=20)
-    ax2.set_xlabel('$Iteration$', fontsize=20)
-    ax2.set_ylabel('$Accuracy$', fontsize=20)
+    ax1.set_xlabel('$Iteration$', fontsize=28)
+    ax1.set_ylabel('$Loss$', fontsize=28)
+    ax2.set_xlabel('$Iteration$', fontsize=28)
+    ax2.set_ylabel('$Accuracy$', fontsize=28)
 
-    ax1.legend(fontsize=20)
-    ax2.legend(fontsize=20)
+    ax1.legend(fontsize=22)
+    ax2.legend(fontsize=22)
 
     plt.savefig("../figures/pytorch_mlp.png")
     plt.show()
