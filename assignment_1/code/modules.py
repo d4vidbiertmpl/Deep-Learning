@@ -126,7 +126,9 @@ class LeakyReLUModule(object):
         #######################
 
         self.neg_slope = neg_slope
-        self.out = np.zeros(0)
+        self.out_mask = np.zeros(0)
+
+        self.grad = None
 
         ########################
         # END OF YOUR CODE    #
@@ -151,13 +153,16 @@ class LeakyReLUModule(object):
         # PUT YOUR CODE HERE  #
         #######################
 
-        x[x <= 0] = x[x <= 0] * self.neg_slope
-        self.out = x
+        self.out_mask = x <= 0
+        # copy fixes a weird bug with the unit tests
+        _x = np.copy(x)
+        _x[self.out_mask] *= self.neg_slope
 
         ########################
         # END OF YOUR CODE    #
         #######################
-        return self.out
+
+        return _x
 
     def backward(self, dout):
         """
@@ -176,9 +181,9 @@ class LeakyReLUModule(object):
         # PUT YOUR CODE HERE  #
         #######################
 
-        dx = np.ones(self.out.shape)
-        dx[self.out <= 0] = self.neg_slope
-        dx = dout * dx
+        dx = np.ones(self.out_mask.shape)
+        dx[self.out_mask] = self.neg_slope
+        dx *= dout
 
         ########################
         # END OF YOUR CODE    #

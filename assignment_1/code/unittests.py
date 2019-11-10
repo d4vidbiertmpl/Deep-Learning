@@ -116,7 +116,7 @@ class TestLayers(unittest.TestCase):
         np.random.seed(42)
         rel_error_max = 1e-6
 
-        for test_num in range(10):
+        for test_num in range(1):
             N = np.random.choice(range(1, 20))
             D = np.random.choice(range(1, 100))
             x = np.random.randn(N, D)

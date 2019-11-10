@@ -21,10 +21,10 @@ from mlp_pytorch import MLP
 import cifar10_utils
 
 # Default constants
-DNN_HIDDEN_UNITS_DEFAULT = '100'
-LEARNING_RATE_DEFAULT = 2e-3
+DNN_HIDDEN_UNITS_DEFAULT = '500,300,200,100'
+LEARNING_RATE_DEFAULT = 1e-3
 MAX_STEPS_DEFAULT = 1500
-BATCH_SIZE_DEFAULT = 200
+BATCH_SIZE_DEFAULT = 500
 EVAL_FREQ_DEFAULT = 100
 NEG_SLOPE_DEFAULT = 0.02
 
@@ -56,7 +56,7 @@ def accuracy(predictions, targets):
     # PUT YOUR CODE HERE  #
     #######################
 
-    corr_pred = torch.sum(torch.eq(torch.argmax(predictions, dim=1), torch.argmax(targets, dim=1))).item()
+    corr_pred = torch.sum(torch.eq(torch.argmax(predictions, dim=1), targets)).item()
     acc = corr_pred / predictions.size()[0]
 
     ########################
@@ -104,60 +104,73 @@ def train():
     n_classes = train_data.labels.shape[1]
     n_inputs = np.prod(train_data.images.shape[1:])
 
-    x_test, y_test = test_data.images, torch.from_numpy(test_data.labels)
+    x_test, y_test = test_data.images, test_data.labels
     x_test = torch.from_numpy(np.reshape(x_test, (x_test.shape[0], n_inputs)))
+    y_test = torch.from_numpy(np.argmax(y_test, axis=1)).type(torch.LongTensor)
 
     criterion = nn.CrossEntropyLoss()
     model = MLP(n_inputs, dnn_hidden_units, n_classes, neg_slope)
 
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-3)
 
-    losses = []
-    accuracies = []
+    # Train and Test losses
+    losses = [[], []]
+    # Train and Test accuracies
+    accuracies = [[], []]
 
     for iteration in np.arange(FLAGS.max_steps):
         x, y = train_data.next_batch(batch_size)
         x = torch.from_numpy(np.reshape(x, (batch_size, n_inputs)))
         y = torch.from_numpy(np.argmax(y, axis=1)).type(torch.LongTensor)
 
-        test = torch.empty(3, dtype=torch.long).random_(5)
-
-        output = model.forward(x)
-        loss = criterion(output, y)
+        train_output = model.forward(x)
+        loss = criterion(train_output, y)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         if iteration % FLAGS.eval_freq == 0 or iteration == FLAGS.max_steps - 1:
-            # Calculate loss
-            loss = criterion.forward(output, y)
-            losses.append(loss)
+            # Second forward pass for test set
+            test_output = model.forward(x_test)
 
-            # Calculate accuracy on test set
-            output = model.forward(x_test)
-            acc = accuracy(output, y_test)
-            accuracies.append(acc)
+            # Calculate losses
+            train_loss = criterion.forward(train_output, y)
+            losses[0].append(train_loss)
 
-            print("Iteration {}, Loss: {}, Accuracy: {}".format(iteration, loss, acc))
+            test_loss = criterion.forward(test_output, y_test)
+            losses[1].append(test_loss)
 
-    fig = plt.figure(figsize=(15, 10), dpi=300)
-    fig.suptitle('Numpy MLP: Losses and Accuracies', fontsize=22)
+            # Calculate accuracies
+            train_acc = accuracy(train_output, y)
+            test_acc = accuracy(test_output, y_test)
+            accuracies[0].append(train_acc)
+            accuracies[1].append(test_acc)
+
+            print("Iteration {}, Train loss: {}, Train accuracy: {}, Test accuracy: {}".format(iteration, train_loss,
+                                                                                               train_acc, test_acc))
+
+    fig = plt.figure(figsize=(25, 10), dpi=200)
+    fig.suptitle('PyTorch MLP: Losses and Accuracies', fontsize=28)
     ax1 = fig.add_subplot(1, 2, 1)
     ax2 = fig.add_subplot(1, 2, 2)
 
-    ax1.plot(losses, linewidth=2, )
-    ax2.plot(accuracies, linewidth=2)
+    ax1.plot(losses[0], linewidth=3, color="g", label="Train loss")
+    ax1.plot(losses[1], linewidth=3, color="c", label="Test loss")
+    ax2.plot(accuracies[0], linewidth=3, color="g", label="Train accuracy")
+    ax2.plot(accuracies[1], linewidth=3, color="c", label="Test accuracy")
 
-    ax1.set_xlabel('$Iteration$', fontsize=16)
-    ax1.set_ylabel('$Loss$', fontsize=16)
-    ax2.set_xlabel('$Iteration$', fontsize=16)
-    ax2.set_ylabel('$Accuracy$', fontsize=16)
+    ax1.set_xlabel('$Iteration$', fontsize=20)
+    ax1.set_ylabel('$Loss$', fontsize=20)
+    ax2.set_xlabel('$Iteration$', fontsize=20)
+    ax2.set_ylabel('$Accuracy$', fontsize=20)
 
-    plt.savefig("../figures/numpy_mlp.png")
+    ax1.legend(fontsize=20)
+    ax2.legend(fontsize=20)
+
+    plt.savefig("../figures/pytorch_mlp.png")
     plt.show()
-
     ########################
     # END OF YOUR CODE    #
     #######################

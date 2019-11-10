@@ -39,6 +39,12 @@ class CustomBatchNormAutograd(nn.Module):
         # PUT YOUR CODE HERE  #
         #######################
 
+        self.n_neurons = n_neurons
+        self.eps = eps
+
+        self.gamma = nn.Parameter(torch.ones(n_neurons))
+        self.beta = nn.Parameter(torch.zeros(n_neurons))
+
         ########################
         # END OF YOUR CODE    #
         #######################
@@ -61,6 +67,14 @@ class CustomBatchNormAutograd(nn.Module):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
+
+        assert input.size(1) == self.n_neurons, 'Number of input channels is: {} but we expected {}'.format(
+                                                                                        input.size(1), self.n_neurons)
+
+        input_mean = input.mean(axis=0)
+        input_var = input.var(axis=0, unbiased=False)
+        input_norm = (input - input_mean) / torch.sqrt(input_var + self.eps)
+        out = self.gamma * input_norm + self.beta
 
         ########################
         # END OF YOUR CODE    #

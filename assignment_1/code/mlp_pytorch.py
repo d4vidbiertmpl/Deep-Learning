@@ -53,10 +53,9 @@ class MLP(nn.Module):
         for i, h_no in enumerate(self.n_hidden):
             self.linear_layers.append(nn.Linear(n_inputs, h_no))
             self.activations.append(nn.LeakyReLU(negative_slope=neg_slope))
-
             n_inputs = h_no
 
-        self.linear_layers.append(nn.Linear(n_inputs, h_no))
+        self.linear_layers.append(nn.Linear(n_inputs, n_classes))
         self.activations.append(None)
 
         ########################
