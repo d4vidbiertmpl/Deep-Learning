@@ -20,12 +20,21 @@ from mlp_pytorch import MLP
 import cifar10_utils
 
 # Default constants
-DNN_HIDDEN_UNITS_DEFAULT = '500,300,200,100'
-LEARNING_RATE_DEFAULT = 1e-3
+DNN_HIDDEN_UNITS_DEFAULT = '100'
+LEARNING_RATE_DEFAULT = 2e-3
 MAX_STEPS_DEFAULT = 1500
-BATCH_SIZE_DEFAULT = 500
+BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 NEG_SLOPE_DEFAULT = 0.02
+
+OPTIMIZER_DEFAULT = 'SGD'  # 'SGD', 'RMSprop'
+
+# DNN_HIDDEN_UNITS_DEFAULT = '500,300,200,100'
+# LEARNING_RATE_DEFAULT = 1e-3
+# MAX_STEPS_DEFAULT = 1500
+# BATCH_SIZE_DEFAULT = 500
+# EVAL_FREQ_DEFAULT = 100
+# NEG_SLOPE_DEFAULT = 0.02
 
 # Directory in which cifar data is saved
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
@@ -113,8 +122,15 @@ def train():
     criterion = nn.CrossEntropyLoss()
     model = MLP(n_inputs, dnn_hidden_units, n_classes, neg_slope)
 
-    # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-3)
+    if FLAGS.optimizer == 'ADAM':
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.02)
+    elif FLAGS.optimizer == 'SGD':
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    elif FLAGS.optimizer == 'RMS':
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+    else:
+        print("Optimizer: Used default option, SGD")
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
     # Train and Test losses
     losses = [[], []]
@@ -222,6 +238,8 @@ if __name__ == '__main__':
                         help='Directory for storing input data')
     parser.add_argument('--neg_slope', type=float, default=NEG_SLOPE_DEFAULT,
                         help='Negative slope parameter for LeakyReLU')
+    parser.add_argument('--optimizer', type=str, default=OPTIMIZER_DEFAULT,
+                        help='Optimizer used for training: SGD, ADAM or RMSprop')
     FLAGS, unparsed = parser.parse_known_args()
 
     main()
