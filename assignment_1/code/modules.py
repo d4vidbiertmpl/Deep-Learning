@@ -31,6 +31,8 @@ class LinearModule(object):
 
         self.std = 0.0001
 
+        # Since we derived the gradients with the convention that derivates are row vectors, we also initialize
+        # the weight matrices with shape (out_features x in_features)
         self.params = {'weight': self.std * np.random.randn(out_features, in_features),
                        'bias': np.zeros((out_features, 1))}
         self.grads = {'weight': np.zeros((out_features, in_features)),
@@ -40,7 +42,6 @@ class LinearModule(object):
         self.bias_size = self.params['bias'].shape
 
         self._x = np.zeros(0)
-        self.out = np.zeros(0)
 
         ########################
         # END OF YOUR CODE    #
@@ -67,13 +68,13 @@ class LinearModule(object):
 
         self._x = x
 
-        self.out = (self.params['weight'] @ x.T + self.params['bias']).T
+        out = (self.params['weight'] @ x.T + self.params['bias']).T
 
         ########################
         # END OF YOUR CODE    #
         #######################
 
-        return self.out
+        return out
 
     def backward(self, dout):
         """
@@ -127,8 +128,6 @@ class LeakyReLUModule(object):
 
         self.neg_slope = neg_slope
         self.out_mask = np.zeros(0)
-
-        self.grad = None
 
         ########################
         # END OF YOUR CODE    #
@@ -220,7 +219,7 @@ class SoftMaxModule(object):
         # PUT YOUR CODE HERE  #
         #######################
 
-        b = x.max(axis=1)[:, np.newaxis]
+        b = np.max(x, axis=1)[:, np.newaxis]
         y = np.exp(x - b)
         self.out = y / y.sum(axis=1)[:, np.newaxis]
 

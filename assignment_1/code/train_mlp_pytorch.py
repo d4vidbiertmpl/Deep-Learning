@@ -143,6 +143,7 @@ def train():
     for iteration in np.arange(FLAGS.max_steps):
         x, y = train_data.next_batch(batch_size)
         x = torch.from_numpy(np.reshape(x, (batch_size, n_inputs)))
+        # argmax in order to align labels with the Cross entropy loss function
         y = torch.from_numpy(np.argmax(y, axis=1)).type(torch.LongTensor)
 
         train_output = model.forward(x)

@@ -93,12 +93,11 @@ def train():
 
     batch_size = FLAGS.batch_size
 
-    criterion = CrossEntropyModule()
-
     cifar_data = cifar10_utils.get_cifar10(DATA_DIR_DEFAULT)
-
     train_data = cifar_data['train']
     test_data = cifar_data['test']
+
+    criterion = CrossEntropyModule()
 
     n_classes = train_data.labels.shape[1]
     n_inputs = np.prod(train_data.images.shape[1:])
@@ -117,7 +116,6 @@ def train():
     iterations = []
 
     for iteration in np.arange(FLAGS.max_steps):
-
         x, y = train_data.next_batch(batch_size)
         x = np.reshape(x, (batch_size, n_inputs))
 
@@ -149,7 +147,8 @@ def train():
             accuracies[0].append(train_acc)
             accuracies[1].append(test_acc)
 
-            print("Iteration {}, Train loss: {}, Accuracy: {}".format(iteration, train_loss, train_acc))
+            print("Iteration {}, Train loss: {}, Train accuracy: {}, Test accuracy: {}".format(iteration, train_loss,
+                                                                                               train_acc, test_acc))
 
     fig = plt.figure(figsize=(25, 10), dpi=200)
     fig.suptitle('Numpy MLP: Losses and Accuracies', fontsize=40)

@@ -71,13 +71,13 @@ class CustomBatchNormAutograd(nn.Module):
         assert input.size(1) == self.n_neurons, 'Number of input channels is: {} but we expected {}'.format(
             input.size(1), self.n_neurons)
 
-        input_mean = input.mean(dim=0)
-        input_var = input.var(dim=0, unbiased=False)
+        input_mean = torch.mean(input, dim=0)
+        input_var = torch.var(input, dim=0, unbiased=False)
         input_norm = (input - input_mean) / torch.sqrt(input_var + self.eps)
         out = self.gamma * input_norm + self.beta
 
         ########################
-        # END OF YOUR CODE    #aA>YS<
+        # END OF YOUR CODE    #
         #######################
 
         return out
@@ -169,7 +169,7 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
         ########################
         # PUT YOUR CODE HERE  #
         #######################
-        # Orientated myself at best practises from https://pytorch.org/docs/stable/notes/extending.html
+        # Orientated myself at best practices from https://pytorch.org/docs/stable/notes/extending.html
 
         input, input_norm, norm_term, gamma = ctx.saved_tensors
         grad_input = grad_gamma = grad_beta = None

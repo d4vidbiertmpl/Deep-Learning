@@ -47,6 +47,7 @@ class MLP(nn.Module):
         self.n_classes = n_classes
         self.neg_slope = neg_slope
 
+        # Figured out that ModuleList seems to be the best practice to store nn.linear layers
         self.linear_layers = nn.ModuleList()
         self.activations = []
 

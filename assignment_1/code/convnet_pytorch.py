@@ -75,6 +75,7 @@ class ConvNet(nn.Module):
             nn.MaxPool2d(3, stride=2, padding=1),
         )
 
+        # Modeled this extra because I had problems with reshaping the last Conv Layer output
         self.last_linear = nn.Linear(self.output_size, n_classes)
 
         ########################
@@ -100,6 +101,7 @@ class ConvNet(nn.Module):
         #######################
 
         net_out = self.net(x)
+        # view seems to be the best practice for reshaping in such a situation
         net_out_reshape = net_out.view(-1, self.output_size)
         out = self.last_linear(net_out_reshape)
 
