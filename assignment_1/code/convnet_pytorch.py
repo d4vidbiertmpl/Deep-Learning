@@ -43,35 +43,47 @@ class ConvNet(nn.Module):
         self.output_size = 512
 
         self.net = nn.Sequential(
+            # conv1
             nn.Conv2d(n_channels, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
+            # maxpool1
             nn.MaxPool2d(3, stride=2, padding=1),
+            # conv2
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
+            # maxpool2
             nn.MaxPool2d(3, stride=2, padding=1),
+            # conv3a
             nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
+            # conv3b
             nn.Conv2d(256, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
+            # maxpool3
             nn.MaxPool2d(3, stride=2, padding=1),
+            # conv4a
             nn.Conv2d(256, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
+            # conv4b
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
+            # maxpool4
             nn.MaxPool2d(3, stride=2, padding=1),
+            # conv5a
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
+            # conv5b
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
-            nn.BatchNorm2d(512),
             nn.ReLU(),
+            # maxpool4
             nn.MaxPool2d(3, stride=2, padding=1),
         )
 

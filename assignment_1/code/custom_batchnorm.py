@@ -191,6 +191,8 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
         if ctx.needs_input_grad[2]:
             grad_beta = torch.sum(grad_output, dim=0)
 
+        print(grad_input.size(), grad_gamma.size(), grad_beta.size())
+
         ########################
         # END OF YOUR CODE    #
         #######################
