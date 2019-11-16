@@ -29,13 +29,6 @@ NEG_SLOPE_DEFAULT = 0.02
 
 OPTIMIZER_DEFAULT = 'SGD'  # 'SGD', 'RMSprop'
 
-# DNN_HIDDEN_UNITS_DEFAULT = '500,300,200,100'
-# LEARNING_RATE_DEFAULT = 1e-3
-# MAX_STEPS_DEFAULT = 1500
-# BATCH_SIZE_DEFAULT = 500
-# EVAL_FREQ_DEFAULT = 100
-# NEG_SLOPE_DEFAULT = 0.02
-
 # Directory in which cifar data is saved
 DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
 
@@ -123,6 +116,8 @@ def train():
     model = MLP(n_inputs, dnn_hidden_units, n_classes, neg_slope)
 
     if FLAGS.optimizer == 'ADAM':
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    elif FLAGS.optimizer == 'ADAMwd':
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0.02)
     elif FLAGS.optimizer == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
@@ -157,12 +152,12 @@ def train():
             iterations.append(iteration)
 
             # Second forward pass for test set
-            test_output = model.forward(x_test)
+            with torch.no_grad():
+                test_output = model.forward(x_test)
 
             # Calculate losses
             train_loss = criterion.forward(train_output, y)
             losses[0].append(train_loss)
-
             test_loss = criterion.forward(test_output, y_test)
             losses[1].append(test_loss)
 

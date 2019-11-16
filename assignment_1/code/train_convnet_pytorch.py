@@ -127,7 +127,8 @@ def train():
             y_test = torch.from_numpy(np.argmax(y_test, axis=1)).type(torch.LongTensor).to(device)
 
             # Second forward pass for test set
-            test_output = model.forward(x_test)
+            with torch.no_grad():
+                test_output = model.forward(x_test)
 
             # Calculate losses
             train_loss = criterion.forward(train_output, y)

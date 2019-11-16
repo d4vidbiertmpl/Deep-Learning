@@ -83,7 +83,7 @@ class ConvNet(nn.Module):
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
-            # maxpool4
+            # maxpool5
             nn.MaxPool2d(3, stride=2, padding=1),
         )
 
