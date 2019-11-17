@@ -25,63 +25,90 @@ import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
+import torch.nn as nn
+from torch import optim
 
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
 
+
 # You may want to look into tensorboard for logging
 # from torch.utils.tensorboard import SummaryWriter
+
 
 ################################################################################
 
 def train(config):
-
     assert config.model_type in ('RNN', 'LSTM')
 
     # Initialize the device which to run the model on
-    device = torch.device(config.device)
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    # device = torch.device(config.device)
+
+    # Initialize params for models
+    seq_length = config.input_length
+    input_dim = config.input_dim
+    num_hidden = config.num_hidden
+    num_classes = config.num_classes
 
     # Initialize the model that we are going to use
-    model = None  # fixme
+    if config.model_type == 'RNN':
+        model = VanillaRNN(seq_length, input_dim, num_hidden, num_classes, device)
+    else:
+        model = LSTM(seq_length, input_dim, num_hidden, num_classes, device)
+
+    model.to(device)
 
     # Initialize the dataset and data loader (note the +1)
-    dataset = PalindromeDataset(config.input_length+1)
+    dataset = PalindromeDataset(config.input_length + 1)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
+
+    # Train losses
+    losses = []
+    # Train accuracies
+    accuracies = []
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
         # Only for time measurement of step through network
         t1 = time.time()
 
-        # Add more code here ...
+        batch_inputs = batch_inputs.to(device)
+        batch_targets = batch_targets.to(device)
+
+        train_output = model.forward(batch_inputs)
+        loss = criterion(train_output, batch_targets)
 
         ############################################################################
         # QUESTION: what happens here and why?
         ############################################################################
+        # Clip exploding gradients
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
 
-        # Add more code here ...
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+        accuracy = torch.sum(torch.eq(torch.argmax(train_output, dim=1), batch_targets)).item() / train_output.size(0)
+        accuracies.append(accuracy)
+        losses.append(loss.item())
 
         # Just for time measurement
         t2 = time.time()
-        examples_per_second = config.batch_size/float(t2-t1)
+        examples_per_second = config.batch_size / float(t2 - t1)
 
         if step % 10 == 0:
-
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
-                    datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                    config.train_steps, config.batch_size, examples_per_second,
-                    accuracy, loss
+                datetime.now().strftime("%Y-%m-%d %H:%M"), step,
+                config.train_steps, config.batch_size, examples_per_second,
+                accuracy, loss
             ))
 
         if step == config.train_steps:
@@ -92,11 +119,10 @@ def train(config):
     print('Done training.')
 
 
- ################################################################################
- ################################################################################
+################################################################################
+################################################################################
 
 if __name__ == "__main__":
-
     # Parse training configuration
     parser = argparse.ArgumentParser()
 
