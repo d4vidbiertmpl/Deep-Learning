@@ -51,7 +51,7 @@ class LSTM(nn.Module):
 
         for key in self.lstm_cell:
             if not key[-1] == 'b':
-                nn.init.normal_(self.lstm_cell[key], mean=0, std=0.02)
+                nn.init.xavier_normal_(self.lstm_cell[key])
 
         self.h_init = torch.zeros(1, num_hidden).to(device)
         self.c_init = torch.zeros(1, num_hidden).to(device)

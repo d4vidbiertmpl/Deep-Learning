@@ -25,4 +25,5 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     # Train the model
-    train.train(config)
+    # train.train(config)
+    train.local_experiments(config)

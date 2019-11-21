@@ -22,6 +22,7 @@ import argparse
 import time
 from datetime import datetime
 import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import DataLoader
@@ -32,12 +33,72 @@ from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
 
-
 # You may want to look into tensorboard for logging
-# from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 
 ################################################################################
+
+
+def local_experiments(config):
+    # p_lengths = [5, 10, 15, 20, 30]
+    p_lengths = [10, 15]
+
+    accuracies_over_t = []
+    # for m in ["RNN", "LSTM"]:
+    for t in p_lengths:
+        accuracies = []
+        for seed in [42, 43, 44, 45]:
+            print("T: {}, Seed: {}".format(t, seed))
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            config.input_length = t
+            # config.model_type = m
+
+            model = train(config)
+
+            mean_accuracy = evaluate_accuracy(model, config)
+            print(mean_accuracy)
+            accuracies.append(mean_accuracy)
+
+        accuracies_over_t.append([np.mean(accuracies), np.std(accuracies)])
+
+    means, stds = [i[0] for i in accuracies_over_t], [i[1] for i in accuracies_over_t]
+
+    fig = plt.figure(figsize=(25, 10), dpi=200)
+    fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(config.model_type), fontsize=40)
+    ax = fig.add_subplot(1, 1, 1)
+    ax.errorbar(x=p_lengths, y=means, yerr=stds, fmt='-o', linewidth=4, color="g")
+    ax.set_xticks(p_lengths)
+
+    ax.set_xlabel('$Palindrome Length$', fontsize=28)
+    ax.set_ylabel('$Accuracy$', fontsize=28)
+
+    plt.savefig("part1/figures/accuracies_over_t.png")
+    plt.show()
+
+
+def evaluate_accuracy(model, config):
+    # device = torch.device(config.device)
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    model.eval()
+    test_size = 8192
+
+    # Initialize the dataset and data loader (note the +1)
+    dataset = PalindromeDataset(config.input_length + 1)
+    data_loader = DataLoader(dataset, test_size, num_workers=1)
+
+    batch_inputs, batch_targets = next(iter(data_loader))
+
+    batch_inputs = batch_inputs.to(device)
+    batch_targets = batch_targets.to(device)
+
+    train_output = model.forward(batch_inputs)
+
+    accuracy = torch.sum(torch.eq(torch.argmax(train_output, dim=1), batch_targets)).item() / train_output.size(0)
+
+    return np.mean(accuracy)
+
 
 def train(config):
     assert config.model_type in ('RNN', 'LSTM')
@@ -51,6 +112,9 @@ def train(config):
     input_dim = config.input_dim
     num_hidden = config.num_hidden
     num_classes = config.num_classes
+
+    # Testing for convergence
+    epsilon = 5e-3
 
     # Initialize the model that we are going to use
     if config.model_type == 'RNN':
@@ -103,7 +167,12 @@ def train(config):
         t2 = time.time()
         examples_per_second = config.batch_size / float(t2 - t1)
 
-        if step % 10 == 0:
+        if step % 100 == 0:
+            print(np.absolute(np.mean(losses[-75:-25]) - losses[-1]), epsilon)
+            if step > 1000 and (np.absolute(np.mean(losses[-75:-25]) - losses[-1]) < epsilon):
+                print("Convergence reached after {} steps".format(step))
+                break
+
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
                 datetime.now().strftime("%Y-%m-%d %H:%M"), step,
@@ -117,6 +186,8 @@ def train(config):
             break
 
     print('Done training.')
+
+    return model
 
 
 ################################################################################
@@ -141,4 +212,5 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     # Train the model
-    train(config)
+    # train(config)
+    local_experiments(config)

@@ -24,7 +24,6 @@ class TextGenerationModel(nn.Module):
 
     def __init__(self, batch_size, seq_length, vocabulary_size,
                  lstm_num_hidden=256, lstm_num_layers=2, device='cuda:0'):
-
         super(TextGenerationModel, self).__init__()
         # Initialization here...
 

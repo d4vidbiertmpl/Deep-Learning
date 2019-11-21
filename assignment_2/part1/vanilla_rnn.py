@@ -43,7 +43,7 @@ class VanillaRNN(nn.Module):
         self.b_p = nn.Parameter(torch.zeros(1, num_classes), requires_grad=True)
 
         for w in [self.W_hx, self.W_hh, self.W_ph]:
-            nn.init.normal_(w, mean=0, std=0.02)
+            nn.init.xavier_normal_(w)
 
         self.h_init = torch.zeros(1, num_hidden).to(device)
 
