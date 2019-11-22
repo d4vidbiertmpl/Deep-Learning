@@ -25,6 +25,7 @@ import argparse
 import numpy as np
 
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -32,22 +33,46 @@ from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
 
 
+def calc_accuracy(predictions, targets):
+    corr_pred = torch.sum(torch.eq(torch.argmax(predictions, dim=1), targets)).item()
+    return corr_pred / (targets.size(0) * targets.size(1))
+
+
 ################################################################################
 
 def train(config):
     # Initialize the device which to run the model on
-    device = torch.device(config.device)
+    # device = torch.device(config.device)
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    # Initialize the model that we are going to use
-    model = TextGenerationModel(...)  # fixme
+    seq_length = config.seq_length
+    batch_size = config.batch_size
+    lstm_num_hidden = config.lstm_num_hidden
+    lstm_num_layers = config.lstm_num_layers
+    dropout_keep_prob = config.dropout_keep_prob
 
     # Initialize the dataset and data loader (note the +1)
-    dataset = TextDataset(...)  # fixme
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+    dataset = TextDataset(config.txt_file, seq_length)
+    data_loader = DataLoader(dataset, batch_size, num_workers=1)
+
+    vocab_size = dataset.vocab_size
+
+    # Initialize the model that we are going to use
+    model = TextGenerationModel(batch_size, seq_length, vocab_size, lstm_num_hidden, lstm_num_layers, dropout_keep_prob,
+                                device)
+    model.to(device)
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
+    # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, config.learning_rate_step, config.learning_rate_decay)
+
+    # Train losses
+    losses = []
+    # Train accuracies
+    accuracies = []
+
+    print(batch_size, seq_length, vocab_size)
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
@@ -58,8 +83,20 @@ def train(config):
         # Add more code here ...
         #######################################################
 
-        loss = np.inf  # fixme
-        accuracy = 0.0  # fixme
+        # To onehot represetation
+        batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), vocab_size), 2, batch_inputs[..., None], 1).to(
+            device)
+        batch_targets = batch_targets.to(device)
+
+        train_output = model.forward(batch_inputs)
+
+        loss = criterion(train_output, batch_targets)
+        accuracy = calc_accuracy(train_output, batch_targets)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        # lr_scheduler.step(step)
 
         # Just for time measurement
         t2 = time.time()
@@ -69,7 +106,7 @@ def train(config):
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
                 datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                config.train_steps, config.batch_size, examples_per_second,
+                int(config.train_steps), config.batch_size, examples_per_second,
                 accuracy, loss
             ))
 
