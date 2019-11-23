@@ -65,7 +65,7 @@ def train(config):
     # Setup the loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
-    # lr_scheduler = optim.lr_scheduler.StepLR(optimizer, config.learning_rate_step, config.learning_rate_decay)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, config.learning_rate_step, config.learning_rate_decay)
 
     # Train losses
     losses = []
@@ -96,7 +96,7 @@ def train(config):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # lr_scheduler.step(step)
+        lr_scheduler.step(step)
 
         # Just for time measurement
         t2 = time.time()

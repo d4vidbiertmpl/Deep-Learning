@@ -41,41 +41,42 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def local_experiments(config):
-    # p_lengths = [5, 10, 15, 20, 30]
-    p_lengths = [10, 15]
+    # p_lengths = [5, 10, 15, 20, 30, 50]
+    p_lengths = [5]
 
-    accuracies_over_t = []
-    # for m in ["RNN", "LSTM"]:
-    for t in p_lengths:
-        accuracies = []
-        for seed in [42, 43, 44, 45]:
-            print("T: {}, Seed: {}".format(t, seed))
-            torch.manual_seed(seed)
-            np.random.seed(seed)
-            config.input_length = t
-            # config.model_type = m
+    accuracies_over_t = [[], []]
+    for i, m in enumerate(["RNN", "LSTM"]):
+        for t in p_lengths:
+            accuracies = []
+            # for seed in [42, 43, 44, 45]:
+            for seed in [42]:
+                print("T: {}, Seed: {}".format(t, seed))
+                torch.manual_seed(seed)
+                np.random.seed(seed)
+                config.input_length = t
+                config.model_type = m
 
-            model = train(config)
+                model = train(config)
 
-            mean_accuracy = evaluate_accuracy(model, config)
-            print(mean_accuracy)
-            accuracies.append(mean_accuracy)
+                mean_accuracy = evaluate_accuracy(model, config)
+                accuracies.append(mean_accuracy)
 
-        accuracies_over_t.append([np.mean(accuracies), np.std(accuracies)])
+            accuracies_over_t[i].append([np.mean(accuracies), np.std(accuracies)])
 
-    means, stds = [i[0] for i in accuracies_over_t], [i[1] for i in accuracies_over_t]
+    for i, m in enumerate(["RNN", "LSTM"]):
+        means, stds = [i[0] for i in accuracies_over_t[i]], [i[1] for i in accuracies_over_t[i]]
 
-    fig = plt.figure(figsize=(25, 10), dpi=200)
-    fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(config.model_type), fontsize=40)
-    ax = fig.add_subplot(1, 1, 1)
-    ax.errorbar(x=p_lengths, y=means, yerr=stds, fmt='-o', linewidth=4, color="g")
-    ax.set_xticks(p_lengths)
+        fig = plt.figure(figsize=(25, 10), dpi=200)
+        fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(m), fontsize=40)
+        ax = fig.add_subplot(1, 1, 1)
+        ax.errorbar(x=p_lengths, y=means, yerr=stds, fmt='-o', linewidth=4, color="g")
+        ax.set_xticks(p_lengths)
 
-    ax.set_xlabel('$Palindrome Length$', fontsize=28)
-    ax.set_ylabel('$Accuracy$', fontsize=28)
+        ax.set_xlabel('$Palindrome Length$', fontsize=28)
+        ax.set_ylabel('$Accuracy$', fontsize=28)
 
-    plt.savefig("part1/figures/accuracies_over_t.png")
-    plt.show()
+        plt.savefig("part1/figures/accuracies_over_t.png")
+        plt.show()
 
 
 def evaluate_accuracy(model, config):
@@ -168,8 +169,7 @@ def train(config):
         examples_per_second = config.batch_size / float(t2 - t1)
 
         if step % 100 == 0:
-            print(np.absolute(np.mean(losses[-75:-25]) - losses[-1]), epsilon)
-            if step > 1000 and (np.absolute(np.mean(losses[-75:-25]) - losses[-1]) < epsilon):
+            if step > 1000 and (np.absolute(np.mean(losses[-100:-2]) - losses[-1]) < epsilon):
                 print("Convergence reached after {} steps".format(step))
                 break
 
