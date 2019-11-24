@@ -56,10 +56,29 @@ class LSTM(nn.Module):
         self.h_init = torch.zeros(1, num_hidden).to(device)
         self.c_init = torch.zeros(1, num_hidden).to(device)
 
+        # For exercise 1.7
+        self.h_states = []
+
     def forward(self, x):
         # Implementation here ...
         _h, _c = self.h_init, self.c_init
         for t in range(self.seq_length):
+            _g = (x[:, t, None] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
+            _i = (x[:, t, None] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
+            _f = (x[:, t, None] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()
+            _o = (x[:, t, None] @ self.lstm_cell["ox"] + _h @ self.lstm_cell["oh"] + self.lstm_cell["ob"]).sigmoid()
+
+            _c = _g * _i + _c * _f
+            _h = _c.tanh() * _o
+
+        return _h @ self.lstm_cell["ph"] + self.lstm_cell["pb"]
+
+    def analyze_gradients(self, x):
+        # Implementation here ...
+        _h, _c = torch.zeros(1, self.num_hidden, requires_grad=True).to(self.device), self.c_init
+        for t in range(self.seq_length):
+            self.h_states.append(_h)
+
             _g = (x[:, t, None] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
             _i = (x[:, t, None] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
             _f = (x[:, t, None] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()

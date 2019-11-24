@@ -6,6 +6,8 @@ import argparse
 
 from part1 import train
 
+from part1.grads_over_time import analyze_grads_over_time
+
 if __name__ == "__main__":
     # Parse training configuration
     parser = argparse.ArgumentParser()
@@ -26,4 +28,7 @@ if __name__ == "__main__":
 
     # Train the model
     # train.train(config)
-    train.local_experiments(config)
+    # train.local_experiments(config)
+
+    analyze_grads_over_time(config)
+

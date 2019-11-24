@@ -47,9 +47,20 @@ class VanillaRNN(nn.Module):
 
         self.h_init = torch.zeros(1, num_hidden).to(device)
 
+        # For exercise 1.7
+        self.h_states = []
+
     def forward(self, x):
         # Implementation here ...
         _h = self.h_init
         for t in range(self.seq_length):
+            _h = (x[:, t, None] @ self.W_hx + _h @ self.W_hh + self.b_h).tanh()
+        return _h @ self.W_ph + self.b_p
+
+    # For exercise 1.7: decided to make an own function to not pollute the forward pass
+    def analyze_hs_gradients(self, x):
+        _h = torch.zeros(1, self.num_hidden, requires_grad=True).to(self.device)
+        for t in range(self.seq_length):
+            self.h_states.append(_h)
             _h = (x[:, t, None] @ self.W_hx + _h @ self.W_hh + self.b_h).tanh()
         return _h @ self.W_ph + self.b_p
