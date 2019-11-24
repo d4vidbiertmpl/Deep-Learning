@@ -41,20 +41,23 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def local_experiments(config):
-    # p_lengths = [5, 10, 15, 20, 30, 50]
-    p_lengths = [5]
+    p_lengths = [5, 10, 15, 20, 25, 30]
+    learning_rates = [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]
+    models = ["RNN", "LSTM"]
 
     accuracies_over_t = [[], []]
-    for i, m in enumerate(["RNN", "LSTM"]):
-        for t in p_lengths:
+    for i, m in enumerate(models):
+        for j, t in enumerate(p_lengths):
             accuracies = []
-            # for seed in [42, 43, 44, 45]:
-            for seed in [42]:
-                print("T: {}, Seed: {}".format(t, seed))
+            for seed in [42, 43, 44, 45]:
+                print("Model: {}, T: {}, Seed: {}".format(m, t, seed))
                 torch.manual_seed(seed)
                 np.random.seed(seed)
                 config.input_length = t
                 config.model_type = m
+                if config.model_type == "LSTM":
+                    print("LR", learning_rates[j])
+                    config.learning_rate = learning_rates[j]
 
                 model = train(config)
 
@@ -63,7 +66,7 @@ def local_experiments(config):
 
             accuracies_over_t[i].append([np.mean(accuracies), np.std(accuracies)])
 
-    for i, m in enumerate(["RNN", "LSTM"]):
+    for i, m in enumerate(models):
         means, stds = [i[0] for i in accuracies_over_t[i]], [i[1] for i in accuracies_over_t[i]]
 
         fig = plt.figure(figsize=(25, 10), dpi=200)
@@ -75,7 +78,7 @@ def local_experiments(config):
         ax.set_xlabel('$Palindrome Length$', fontsize=28)
         ax.set_ylabel('$Accuracy$', fontsize=28)
 
-        plt.savefig("part1/figures/accuracies_over_t.png")
+        plt.savefig("part1/figures/{}_accuracies_over_t.png".format(m))
         plt.show()
 
 
@@ -115,7 +118,12 @@ def train(config):
     num_classes = config.num_classes
 
     # Testing for convergence
-    epsilon = 5e-3
+    epsilon = 5e-4
+    # minimal steps the model definitely trains
+    if seq_length < 30:
+        min_steps = 5000 if seq_length > 15 else 1500
+    else:
+        min_steps = config.train_steps
 
     # Initialize the model that we are going to use
     if config.model_type == 'RNN':
@@ -169,9 +177,6 @@ def train(config):
         examples_per_second = config.batch_size / float(t2 - t1)
 
         if step % 100 == 0:
-            if step > 1000 and (np.absolute(np.mean(losses[-100:-2]) - losses[-1]) < epsilon):
-                print("Convergence reached after {} steps".format(step))
-                break
 
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
@@ -179,6 +184,10 @@ def train(config):
                 config.train_steps, config.batch_size, examples_per_second,
                 accuracy, loss
             ))
+
+            if step > min_steps and (np.absolute(np.mean(losses[-100:-2]) - losses[-1]) < epsilon):
+                print("Convergence reached after {} steps".format(step))
+                break
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
