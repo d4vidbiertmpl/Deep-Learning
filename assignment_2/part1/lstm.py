@@ -73,11 +73,12 @@ class LSTM(nn.Module):
 
         return _h @ self.lstm_cell["ph"] + self.lstm_cell["pb"]
 
-    def analyze_gradients(self, x):
+    def analyze_hs_gradients(self, x):
         # Implementation here ...
         _h, _c = torch.zeros(1, self.num_hidden, requires_grad=True).to(self.device), self.c_init
         for t in range(self.seq_length):
-            self.h_states.append(_h)
+            _h.retain_grad()
+            self.h_states.append((t, _h))
 
             _g = (x[:, t, None] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
             _i = (x[:, t, None] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()

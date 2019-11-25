@@ -69,16 +69,17 @@ def analyze_grads_over_time(config, pretrain_model=False):
     loss = criterion(train_output, batch_targets)
 
     optimizer.zero_grad()
+    loss.backward()
+    gradient_norms = []
 
-    for i, h in enumerate(model.h_states):
-        _grad = grad(loss, h, retain_graph=True)[0]
-        if i > 0:
-            _grad = old_grad @ _grad
+    for i, (t, h) in enumerate(model.h_states[::-1]):
+        _grad = h.grad
 
-        print("----")
-        print("Size", _grad.size())
-        print("l1-norm", _grad.abs().sum())
-        print("l2-norm", _grad.abs().pow(2).sum().sqrt())
-        old_grad = _grad
+        l1_norm = _grad.abs().sum().item()
+        l2_norm = _grad.abs().pow(2).sum().sqrt().item()
 
-    # loss.backward()
+        gradient_norms.append(l2_norm)
+
+    print(gradient_norms)
+    plt.plot(gradient_norms)
+    plt.show()

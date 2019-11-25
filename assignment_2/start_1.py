@@ -30,5 +30,6 @@ if __name__ == "__main__":
     # train.train(config)
     # train.local_experiments(config)
 
-    analyze_grads_over_time(config)
+    # analyze_grads_over_time(config)
+    analyze_grads_over_time(config, pretrain_model=True)
 
