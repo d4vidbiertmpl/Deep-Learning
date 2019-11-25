@@ -29,6 +29,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+import torch.nn.functional as F
+
 from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
 
@@ -38,9 +40,45 @@ def calc_accuracy(predictions, targets):
     return corr_pred / (targets.size(0) * targets.size(1))
 
 
+def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device=torch.device("cpu")):
+    vocab_size = dataset.vocab_size
+    sample_char = torch.randint(vocab_size, size=(1, 1), device=device)
+
+    final_sequence = [sample_char.item()]
+
+    char_sequence = sample_char
+    for t in range(T):
+
+        # Deciding one hot or embedding => decided for embedding
+        # model_input = F.one_hot(char_sequence, vocab_size).type(torch.FloatTensor)
+        model_input = char_sequence
+
+        with torch.no_grad():
+            train_output = model.forward(model_input)[:, :, 0][..., None]
+
+        if sampling_type == "greedy":
+            _pred = torch.argmax(train_output, dim=1)
+        elif sampling_type == "use_temperature":
+            # sm = torch.softmax(-tau * train_output, dim=1).view(-1)
+            sm = torch.softmax(train_output / tau, dim=1).view(-1)
+            _pred = torch.multinomial(sm, 1)[:, None]
+        else:
+            print("Unknown sampling type")
+            break
+
+        char_sequence = torch.cat((char_sequence, _pred), dim=1)
+        final_sequence.append(_pred.item())
+
+    return dataset.convert_to_string(final_sequence)
+
+
 ################################################################################
 
 def train(config):
+    seed = 42
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
     # Initialize the device which to run the model on
     # device = torch.device(config.device)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -72,8 +110,6 @@ def train(config):
     # Train accuracies
     accuracies = []
 
-    print(batch_size, seq_length, vocab_size)
-
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
         # Only for time measurement of step through network
@@ -83,15 +119,18 @@ def train(config):
         # Add more code here ...
         #######################################################
 
-        # To onehot represetation
-        batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), vocab_size), 2, batch_inputs[..., None], 1).to(
-            device)
+        # To onehot represetation of input
+        batch_inputs = batch_inputs.to(device)
+        # batch_inputs = F.one_hot(batch_inputs, vocab_size).type(torch.FloatTensor).to(device)
         batch_targets = batch_targets.to(device)
 
         train_output = model.forward(batch_inputs)
 
         loss = criterion(train_output, batch_targets)
         accuracy = calc_accuracy(train_output, batch_targets)
+
+        losses.append(loss)
+        accuracies.append(accuracy)
 
         optimizer.zero_grad()
         loss.backward()
@@ -110,9 +149,27 @@ def train(config):
                 accuracy, loss
             ))
 
-        if step == config.sample_every:
+        if step % config.sample_every == 0:
             # Generate some sentences by sampling from the model
-            pass
+
+            base_string = "[{}] Train Step {:04d}/{:04d}, Sampling type: {}, Temperature: {}, Text: {} \n"
+
+            # sample greedily
+            model_sample = generate_from_model(model, dataset, device=device)
+            greedy_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step, int(config.train_steps),
+                                               "Greedy", "none", model_sample)
+
+            with open("greedy_samples.txt", "a") as text_file:
+                text_file.write(greedy_string)
+
+            for temperature in [0.5, 1.0, 2.0]:
+                model_sample = generate_from_model(model, dataset, sampling_type="use_temperature", tau=temperature,
+                                                   device=device)
+
+                temp_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step,
+                                                 int(config.train_steps), "use_temperature", temperature, model_sample)
+                with open("temperature_samples.txt", "a") as text_file:
+                    text_file.write(temp_string)
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:

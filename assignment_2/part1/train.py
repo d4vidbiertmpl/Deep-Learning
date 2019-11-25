@@ -29,6 +29,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch import optim
 
+import torch.nn.functional as F
+
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
@@ -41,9 +43,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def local_experiments(config):
-    p_lengths = [5, 10, 15, 20, 25, 30]
-    learning_rates = [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4]
-    models = ["RNN", "LSTM"]
+    p_lengths = [30, 10, 15, 20, 25, 30, 50]
+    learning_rates = [1e-4, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4]
+    models = ["LSTM"]
+
+    print(config)
 
     accuracies_over_t = [[], []]
     for i, m in enumerate(models):
@@ -55,9 +59,8 @@ def local_experiments(config):
                 np.random.seed(seed)
                 config.input_length = t
                 config.model_type = m
-                if config.model_type == "LSTM":
-                    print("LR", learning_rates[j])
-                    config.learning_rate = learning_rates[j]
+                print("LR", learning_rates[j])
+                config.learning_rate = learning_rates[j]
 
                 model = train(config)
 
@@ -94,7 +97,8 @@ def evaluate_accuracy(model, config):
 
     batch_inputs, batch_targets = next(iter(data_loader))
 
-    batch_inputs = batch_inputs.to(device)
+    batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), config.num_classes), 2,
+                                 batch_inputs[..., None].to(torch.int64), 1).to(device)
     batch_targets = batch_targets.to(device)
 
     train_output = model.forward(batch_inputs)
@@ -108,6 +112,7 @@ def train(config):
     assert config.model_type in ('RNN', 'LSTM')
 
     # Initialize the device which to run the model on
+    # TODO: Change all of these before handing in
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # device = torch.device(config.device)
 
@@ -117,11 +122,16 @@ def train(config):
     num_hidden = config.num_hidden
     num_classes = config.num_classes
 
+    print(seq_length, input_dim, num_classes, num_hidden)
+
     # Testing for convergence
     epsilon = 5e-4
-    # minimal steps the model definitely trains
+    # minimal steps the model definitely trains, LSTM trains slower so needs more interations
     if seq_length < 30:
-        min_steps = 5000 if seq_length > 15 else 1500
+        if config.model_type == 'RNN':
+            min_steps = 3000 if seq_length > 15 else 1000
+        else:
+            min_steps = 6000 if seq_length > 15 else 1500
     else:
         min_steps = config.train_steps
 
@@ -151,7 +161,9 @@ def train(config):
         # Only for time measurement of step through network
         t1 = time.time()
 
-        batch_inputs = batch_inputs.to(device)
+        batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), num_classes), 2,
+                                     batch_inputs[..., None].to(torch.int64), 1).to(device)
+
         batch_targets = batch_targets.to(device)
 
         train_output = model.forward(batch_inputs)
@@ -222,4 +234,4 @@ if __name__ == "__main__":
 
     # Train the model
     # train(config)
-    local_experiments(config)
+    # local_experiments(config)

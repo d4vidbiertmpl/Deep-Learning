@@ -53,7 +53,7 @@ def analyze_grads_over_time(config, pretrain_model=False):
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length + 1)
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+    data_loader = DataLoader(dataset, batch_size=1, num_workers=1)
 
     # Setup the loss and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -71,15 +71,22 @@ def analyze_grads_over_time(config, pretrain_model=False):
     optimizer.zero_grad()
     loss.backward()
     gradient_norms = []
+    time_steps = []
 
     for i, (t, h) in enumerate(model.h_states[::-1]):
         _grad = h.grad
 
-        l1_norm = _grad.abs().sum().item()
-        l2_norm = _grad.abs().pow(2).sum().sqrt().item()
-
+        l2_norm = _grad.norm(2).item()
         gradient_norms.append(l2_norm)
 
-    print(gradient_norms)
-    plt.plot(gradient_norms)
+    fig = plt.figure(figsize=(25, 10), dpi=200)
+    fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(m), fontsize=40)
+    ax = fig.add_subplot(1, 1, 1)
+    ax.errorbar(x=p_lengths, y=means, yerr=stds, fmt='-o', linewidth=4, color="g")
+    ax.set_xticks(p_lengths)
+
+    ax.set_xlabel('$Palindrome Length$', fontsize=28)
+    ax.set_ylabel('$Accuracy$', fontsize=28)
+
+    plt.savefig("part1/figures/{}_accuracies_over_t.png".format(m))
     plt.show()

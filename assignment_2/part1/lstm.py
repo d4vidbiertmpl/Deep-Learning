@@ -51,6 +51,7 @@ class LSTM(nn.Module):
 
         for key in self.lstm_cell:
             if not key[-1] == 'b':
+                # like suggested in the lecture
                 nn.init.xavier_normal_(self.lstm_cell[key])
 
         self.h_init = torch.zeros(1, num_hidden).to(device)
@@ -63,29 +64,30 @@ class LSTM(nn.Module):
         # Implementation here ...
         _h, _c = self.h_init, self.c_init
         for t in range(self.seq_length):
-            _g = (x[:, t, None] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
-            _i = (x[:, t, None] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
-            _f = (x[:, t, None] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()
-            _o = (x[:, t, None] @ self.lstm_cell["ox"] + _h @ self.lstm_cell["oh"] + self.lstm_cell["ob"]).sigmoid()
+            _g = (x[:, t] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
+            _i = (x[:, t] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
+            _f = (x[:, t] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()
+            _o = (x[:, t] @ self.lstm_cell["ox"] + _h @ self.lstm_cell["oh"] + self.lstm_cell["ob"]).sigmoid()
 
             _c = _g * _i + _c * _f
             _h = _c.tanh() * _o
 
         return _h @ self.lstm_cell["ph"] + self.lstm_cell["pb"]
 
+    # For exercise 1.7: decided to make an own function to not pollute the forward pass
     def analyze_hs_gradients(self, x):
         # Implementation here ...
         _h, _c = torch.zeros(1, self.num_hidden, requires_grad=True).to(self.device), self.c_init
         for t in range(self.seq_length):
-            _h.retain_grad()
-            self.h_states.append((t, _h))
-
-            _g = (x[:, t, None] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
-            _i = (x[:, t, None] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
-            _f = (x[:, t, None] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()
-            _o = (x[:, t, None] @ self.lstm_cell["ox"] + _h @ self.lstm_cell["oh"] + self.lstm_cell["ob"]).sigmoid()
+            _g = (x[:, t] @ self.lstm_cell["gx"] + _h @ self.lstm_cell["gh"] + self.lstm_cell["gb"]).tanh()
+            _i = (x[:, t] @ self.lstm_cell["ix"] + _h @ self.lstm_cell["ih"] + self.lstm_cell["ib"]).sigmoid()
+            _f = (x[:, t] @ self.lstm_cell["fx"] + _h @ self.lstm_cell["fh"] + self.lstm_cell["fb"]).sigmoid()
+            _o = (x[:, t] @ self.lstm_cell["ox"] + _h @ self.lstm_cell["oh"] + self.lstm_cell["ob"]).sigmoid()
 
             _c = _g * _i + _c * _f
             _h = _c.tanh() * _o
+
+            _h.retain_grad()
+            self.h_states.append((t, _h))
 
         return _h @ self.lstm_cell["ph"] + self.lstm_cell["pb"]

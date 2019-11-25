@@ -34,11 +34,15 @@ class TextGenerationModel(nn.Module):
         self.lstm_num_layers = lstm_num_layers
         self.device = device
 
-        self.lstm = nn.LSTM(vocabulary_size, lstm_num_hidden, lstm_num_layers, dropout=dropout_keep_prob)
+        self.char_embedding = nn.Embedding(vocabulary_size, vocabulary_size)
+
+        self.lstm = nn.LSTM(vocabulary_size, lstm_num_hidden, lstm_num_layers, dropout=dropout_keep_prob,
+                            batch_first=True)
         self.linear = nn.Linear(lstm_num_hidden, vocabulary_size)
 
     def forward(self, x):
         # Implementation here...
         # need h_c etc?
-        net_out, _ = self.lstm(x)
+        net_out, _ = self.lstm(self.char_embedding(x))
+        # Transpose because the cross entropy loss wants(minibatch, classes, features)
         return self.linear(net_out).transpose(2, 1)

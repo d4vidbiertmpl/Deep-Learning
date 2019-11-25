@@ -28,8 +28,7 @@ if __name__ == "__main__":
 
     # Train the model
     # train.train(config)
-    # train.local_experiments(config)
+    train.local_experiments(config)
 
     # analyze_grads_over_time(config)
-    analyze_grads_over_time(config, pretrain_model=True)
-
+    # analyze_grads_over_time(config, pretrain_model=True)
