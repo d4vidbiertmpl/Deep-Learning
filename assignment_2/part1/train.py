@@ -86,8 +86,7 @@ def local_experiments(config):
 
 
 def evaluate_accuracy(model, config):
-    # device = torch.device(config.device)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(config.device)
     model.eval()
     test_size = 8192
 
@@ -112,9 +111,7 @@ def train(config):
     assert config.model_type in ('RNN', 'LSTM')
 
     # Initialize the device which to run the model on
-    # TODO: Change all of these before handing in
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    # device = torch.device(config.device)
+    device = torch.device(config.device)
 
     # Initialize params for models
     seq_length = config.input_length

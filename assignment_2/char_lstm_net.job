@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --job-name=dl_lstm_pytorch_DB
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=3
+#SBATCH --ntasks-per-node=1
+#SBATCH --time 1:00:00
+#SBATCH --mem=60000M
+#SBATCH --partition=gpu_shared_course
+#SBATCH --gres=gpu:1
+
+module purge
+
+module load 2019
+module load CUDA/10.0.130
+module load Anaconda3/2018.12
+
+source activate dl
+
+srun python3 start_2.py --txt_file="part2/assets/book_EN_democracy_in_the_US.txt" --print_every=100 --dropout_keep_prob=0.5
+

@@ -29,15 +29,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
-
-
-def calc_accuracy(predictions, targets):
-    corr_pred = torch.sum(torch.eq(torch.argmax(predictions, dim=1), targets)).item()
-    return corr_pred / (targets.size(0) * targets.size(1))
 
 
 def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device=torch.device("cpu")):
@@ -80,8 +75,9 @@ def train(config):
     np.random.seed(seed)
 
     # Initialize the device which to run the model on
-    # device = torch.device(config.device)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(config.device)
+
+    writer = SummaryWriter()
 
     seq_length = config.seq_length
     batch_size = config.batch_size
@@ -102,13 +98,8 @@ def train(config):
 
     # Setup the loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, config.learning_rate_step, config.learning_rate_decay)
-
-    # Train losses
-    losses = []
-    # Train accuracies
-    accuracies = []
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
@@ -119,7 +110,7 @@ def train(config):
         # Add more code here ...
         #######################################################
 
-        # To onehot represetation of input
+        # To onehot represetation of input or embedding => decided for embedding
         batch_inputs = batch_inputs.to(device)
         # batch_inputs = F.one_hot(batch_inputs, vocab_size).type(torch.FloatTensor).to(device)
         batch_targets = batch_targets.to(device)
@@ -127,10 +118,11 @@ def train(config):
         train_output = model.forward(batch_inputs)
 
         loss = criterion(train_output, batch_targets)
-        accuracy = calc_accuracy(train_output, batch_targets)
+        accuracy = torch.sum(torch.eq(torch.argmax(train_output, dim=1), batch_targets)).item() / (
+                batch_targets.size(0) * batch_targets.size(1))
 
-        losses.append(loss)
-        accuracies.append(accuracy)
+        writer.add_scalar('Loss/train', loss.item(), step)
+        writer.add_scalar('Accuracy/train', accuracy, step)
 
         optimizer.zero_grad()
         loss.backward()
@@ -177,6 +169,7 @@ def train(config):
             break
 
     print('Done training.')
+    writer.close()
 
 
 ################################################################################
