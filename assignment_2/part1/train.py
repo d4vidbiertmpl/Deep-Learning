@@ -43,8 +43,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def local_experiments(config):
-    p_lengths = [30, 10, 15, 20, 25, 30, 50]
-    learning_rates = [1e-4, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4]
+    p_lengths = [5, 10, 15, 20, 25, 30, 50, 100, 150]
+    learning_rates = [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]
     models = ["LSTM"]
 
     print(config)

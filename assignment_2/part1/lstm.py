@@ -47,7 +47,10 @@ class LSTM(nn.Module):
                 self.lstm_cell[layer.format('x')] = nn.Parameter(torch.empty(input_dim, num_hidden), requires_grad=True)
                 self.lstm_cell[layer.format('h')] = nn.Parameter(torch.empty(num_hidden, num_hidden),
                                                                  requires_grad=True)
-                self.lstm_cell[layer.format('b')] = nn.Parameter(torch.zeros(1, num_hidden), requires_grad=True)
+                if layer == "f{}":
+                    self.lstm_cell[layer.format('b')] = nn.Parameter(torch.ones(1, num_hidden), requires_grad=True)
+                else:
+                    self.lstm_cell[layer.format('b')] = nn.Parameter(torch.zeros(1, num_hidden), requires_grad=True)
 
         for key in self.lstm_cell:
             if not key[-1] == 'b':
