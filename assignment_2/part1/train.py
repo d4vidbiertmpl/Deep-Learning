@@ -44,8 +44,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 def local_experiments(config):
     p_lengths = [5, 10, 15, 20, 25, 30, 50, 100, 150]
-    learning_rates = [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]
-    models = ["LSTM"]
+    learning_rates = [1e-3, 1e-3, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]
+    models = ["RNN", "LSTM"]
 
     print(config)
 
@@ -130,7 +130,10 @@ def train(config):
         else:
             min_steps = 6000 if seq_length > 15 else 1500
     else:
-        min_steps = config.train_steps
+        if config.model_type == 'RNN':
+            min_steps = 6000
+        else:
+            min_steps = config.train_steps
 
     # Initialize the model that we are going to use
     if config.model_type == 'RNN':

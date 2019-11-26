@@ -41,20 +41,24 @@ from part2.model import TextGenerationModel
 
 def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device=torch.device("cpu")):
     vocab_size = dataset.vocab_size
+    hidden = None
+
     sample_char = torch.randint(vocab_size, size=(1, 1), device=device)
     final_sequence = [sample_char.item()]
 
     for t in range(T - 1):
 
+        # sample_char = F.one_hot(sample_char, vocab_size).type(torch.FloatTensor).to(device)
+
         with torch.no_grad():
-            train_output = model.forward(sample_char)
+            model_output, hidden = model.forward(sample_char, hidden)
 
         if sampling_type == "greedy":
-            sample_char = torch.argmax(train_output, dim=1)
+            sm = torch.softmax(model_output, dim=1)
+            sample_char = torch.argmax(sm, dim=1)
 
         elif sampling_type == "use_temperature":
-            # sm = torch.softmax(-tau * train_output, dim=1).view(-1)
-            sm = torch.softmax(train_output / tau, dim=1).view(-1)
+            sm = torch.softmax(tau * model_output, dim=1).view(-1)
             sample_char = torch.multinomial(sm, 1)[:, None]
 
         else:
@@ -62,6 +66,9 @@ def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, d
             break
 
         final_sequence.append(sample_char.item())
+
+    if sampling_type == "greedy":
+        print(dataset.convert_to_string(final_sequence))
 
     return dataset.convert_to_string(final_sequence)
 
@@ -114,7 +121,7 @@ def train(config):
         batch_inputs = batch_inputs.to(device)
         batch_targets = batch_targets.to(device)
 
-        train_output = model.forward(batch_inputs)
+        train_output, _ = model.forward(batch_inputs)
 
         loss = criterion(train_output, batch_targets)
         accuracy = torch.sum(torch.eq(torch.argmax(train_output, dim=1), batch_targets)).item() / (
@@ -146,7 +153,7 @@ def train(config):
             base_string = "[{}] Train Step {:04d}/{:04d}, Sampling type: {}, Temperature: {}, Text: {} \n"
 
             # sample greedily
-            model_sample = generate_from_model(model, dataset, device=device)
+            model_sample = generate_from_model(model, dataset, seq_length, device=device)
             greedy_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step, int(config.train_steps),
                                                "Greedy", "none", model_sample)
 
@@ -154,8 +161,8 @@ def train(config):
                 text_file.write(greedy_string)
 
             for temperature in [0.5, 1.0, 2.0]:
-                model_sample = generate_from_model(model, dataset, sampling_type="use_temperature", tau=temperature,
-                                                   device=device)
+                model_sample = generate_from_model(model, dataset, seq_length, sampling_type="use_temperature",
+                                                   tau=temperature, device=device)
 
                 temp_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step,
                                                  int(config.train_steps), "use_temperature", temperature, model_sample)

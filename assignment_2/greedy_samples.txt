@@ -1,3 +1,0 @@
-[2019-11-26 04:18] Train Step 0000/1000000, Sampling type: Greedy, Temperature: none, Text: /yz8nsyz8n*y#z8z88#8z8zsyz8*yz 
-[2019-11-26 04:18] Train Step 0100/1000000, Sampling type: Greedy, Temperature: none, Text: ? te t the on on on t on on te 
-[2019-11-26 04:18] Train Step 0200/1000000, Sampling type: Greedy, Temperature: none, Text: 9n the the the t the on the on 

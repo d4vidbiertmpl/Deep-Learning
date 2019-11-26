@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import torch
 import torch.nn as nn
 
 
@@ -34,15 +35,15 @@ class TextGenerationModel(nn.Module):
         self.lstm_num_layers = lstm_num_layers
         self.device = device
 
+        # dimension (vocabulary_size, vocabulary_size) to fit the model input
         self.char_embedding = nn.Embedding(vocabulary_size, vocabulary_size)
 
-        self.lstm = nn.LSTM(vocabulary_size, lstm_num_hidden, lstm_num_layers, dropout=dropout_keep_prob,
+        self.lstm = nn.LSTM(vocabulary_size, lstm_num_hidden, lstm_num_layers, dropout=1 - dropout_keep_prob,
                             batch_first=True)
         self.linear = nn.Linear(lstm_num_hidden, vocabulary_size)
 
-    def forward(self, x):
+    def forward(self, x, hidden=None):
         # Implementation here...
-        # need h_c etc?
-        net_out, _ = self.lstm(self.char_embedding(x))
+        net_out, hidden = self.lstm(self.char_embedding(x), hidden)
         # Transpose because the cross entropy loss wants(minibatch, classes, features)
-        return self.linear(net_out).transpose(2, 1)
+        return self.linear(net_out).transpose(2, 1), hidden

@@ -48,7 +48,7 @@ class TextDataset(data.Dataset):
         return ''.join(self._ix_to_char[ix] for ix in char_ix)
 
     def __len__(self):
-        return self._data_size*1000
+        return self._data_size
 
     @property
     def vocab_size(self):
