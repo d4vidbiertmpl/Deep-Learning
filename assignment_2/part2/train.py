@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import random
+
 import os
 import time
 from datetime import datetime
@@ -29,6 +31,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+import torch.nn.functional as F
+
 from torch.utils.tensorboard import SummaryWriter
 
 from part2.dataset import TextDataset
@@ -38,31 +42,26 @@ from part2.model import TextGenerationModel
 def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device=torch.device("cpu")):
     vocab_size = dataset.vocab_size
     sample_char = torch.randint(vocab_size, size=(1, 1), device=device)
-
     final_sequence = [sample_char.item()]
 
-    char_sequence = sample_char
-    for t in range(T):
-
-        # Deciding one hot or embedding => decided for embedding
-        # model_input = F.one_hot(char_sequence, vocab_size).type(torch.FloatTensor)
-        model_input = char_sequence
+    for t in range(T - 1):
 
         with torch.no_grad():
-            train_output = model.forward(model_input)[:, :, 0][..., None]
+            train_output = model.forward(sample_char)
 
         if sampling_type == "greedy":
-            _pred = torch.argmax(train_output, dim=1)
+            sample_char = torch.argmax(train_output, dim=1)
+
         elif sampling_type == "use_temperature":
             # sm = torch.softmax(-tau * train_output, dim=1).view(-1)
             sm = torch.softmax(train_output / tau, dim=1).view(-1)
-            _pred = torch.multinomial(sm, 1)[:, None]
+            sample_char = torch.multinomial(sm, 1)[:, None]
+
         else:
             print("Unknown sampling type")
             break
 
-        char_sequence = torch.cat((char_sequence, _pred), dim=1)
-        final_sequence.append(_pred.item())
+        final_sequence.append(sample_char.item())
 
     return dataset.convert_to_string(final_sequence)
 
@@ -111,8 +110,8 @@ def train(config):
         #######################################################
 
         # To onehot represetation of input or embedding => decided for embedding
-        batch_inputs = batch_inputs.to(device)
         # batch_inputs = F.one_hot(batch_inputs, vocab_size).type(torch.FloatTensor).to(device)
+        batch_inputs = batch_inputs.to(device)
         batch_targets = batch_targets.to(device)
 
         train_output = model.forward(batch_inputs)
