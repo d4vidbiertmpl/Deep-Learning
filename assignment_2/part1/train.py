@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import pickle
 import argparse
 import time
 from datetime import datetime
@@ -68,6 +69,8 @@ def local_experiments(config):
                 accuracies.append(mean_accuracy)
 
             accuracies_over_t[i].append([np.mean(accuracies), np.std(accuracies)])
+            with open('part_1_exp.pkl', 'wb') as f:
+                pickle.dump(accuracies_over_t, f)
 
     for i, m in enumerate(models):
         means, stds = [i[0] for i in accuracies_over_t[i]], [i[1] for i in accuracies_over_t[i]]
@@ -128,12 +131,9 @@ def train(config):
         if config.model_type == 'RNN':
             min_steps = 3000 if seq_length > 15 else 1000
         else:
-            min_steps = 6000 if seq_length > 15 else 1500
+            min_steps = 5000 if seq_length > 15 else 1500
     else:
-        if config.model_type == 'RNN':
-            min_steps = 6000
-        else:
-            min_steps = config.train_steps
+        min_steps = 6500
 
     # Initialize the model that we are going to use
     if config.model_type == 'RNN':

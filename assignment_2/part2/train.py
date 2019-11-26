@@ -39,7 +39,33 @@ from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
 
 
-def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device=torch.device("cpu")):
+def sample_from_model(config, step, model, dataset):
+    device = config.device
+    title_string = "[{}] Train Step {:04d}/{:04d}, Sample Length: {} \n"
+    seq_string = "Temperature: {}, Text: {} \n"
+
+    for t in [15, 30, 50, 100]:
+        seq_greedy = generate_from_model(model, dataset, t, sampling_type="greedy", tau=1.0, device=device)
+        seq_t05 = generate_from_model(model, dataset, t, sampling_type="use_temperature", tau=0.5, device=device)
+        seq_t10 = generate_from_model(model, dataset, t, sampling_type="use_temperature", tau=1.0, device=device)
+        seq_t20 = generate_from_model(model, dataset, t, sampling_type="use_temperature", tau=2.0, device=device)
+
+        greedy_string = seq_string.format("Greedy", seq_greedy)
+        seq_t05_string = seq_string.format("0.5", seq_t05)
+        seq_t10_string = seq_string.format("1.0", seq_t10)
+        seq_t20_string = seq_string.format("2.0", seq_t20)
+
+        with open("samples_over_training.txt", "a") as text_file:
+            text_file.write(
+                title_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step, int(config.train_steps), t))
+            text_file.write(greedy_string)
+            text_file.write(seq_t05_string)
+            text_file.write(seq_t10_string)
+            text_file.write(seq_t20_string)
+            text_file.write("\n \n")
+
+
+def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, device="cpu"):
     vocab_size = dataset.vocab_size
     hidden = None
 
@@ -66,9 +92,6 @@ def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, d
             break
 
         final_sequence.append(sample_char.item())
-
-    if sampling_type == "greedy":
-        print(dataset.convert_to_string(final_sequence))
 
     return dataset.convert_to_string(final_sequence)
 
@@ -149,25 +172,7 @@ def train(config):
 
         if step % config.sample_every == 0:
             # Generate some sentences by sampling from the model
-
-            base_string = "[{}] Train Step {:04d}/{:04d}, Sampling type: {}, Temperature: {}, Text: {} \n"
-
-            # sample greedily
-            model_sample = generate_from_model(model, dataset, seq_length, device=device)
-            greedy_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step, int(config.train_steps),
-                                               "Greedy", "none", model_sample)
-
-            with open("greedy_samples.txt", "a") as text_file:
-                text_file.write(greedy_string)
-
-            for temperature in [0.5, 1.0, 2.0]:
-                model_sample = generate_from_model(model, dataset, seq_length, sampling_type="use_temperature",
-                                                   tau=temperature, device=device)
-
-                temp_string = base_string.format(datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                                                 int(config.train_steps), "use_temperature", temperature, model_sample)
-                with open("temperature_samples.txt", "a") as text_file:
-                    text_file.write(temp_string)
+            sample_from_model(config, step, model, dataset)
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
@@ -175,6 +180,7 @@ def train(config):
             break
 
     print('Done training.')
+    torch.save(model, "GEN_LSTM.pth")
     writer.close()
 
 
