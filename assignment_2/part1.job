@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=dl_lstm_pytorch_DB
+#SBATCH --job-name=dl_rnn_lstm_pytorch_DB
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=3
 #SBATCH --ntasks-per-node=1
