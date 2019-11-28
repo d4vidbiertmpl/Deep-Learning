@@ -48,7 +48,9 @@ class LSTM(nn.Module):
                 self.lstm_cell[layer.format('h')] = nn.Parameter(torch.empty(num_hidden, num_hidden),
                                                                  requires_grad=True)
                 if layer == "f{}":
+                    # Initialize forget bias to a vector of ones (or twos) according to http://proceedings.mlr.press/v37/jozefowicz15.pdf
                     self.lstm_cell[layer.format('b')] = nn.Parameter(torch.ones(1, num_hidden), requires_grad=True)
+                    # self.lstm_cell[layer.format('b')] = nn.Parameter(torch.ones(1, num_hidden)*2, requires_grad=True)
                 else:
                     self.lstm_cell[layer.format('b')] = nn.Parameter(torch.zeros(1, num_hidden), requires_grad=True)
 

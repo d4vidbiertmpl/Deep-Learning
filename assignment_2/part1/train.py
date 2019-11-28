@@ -174,7 +174,7 @@ def train(config):
         # Only for time measurement of step through network
         t1 = time.time()
 
-        # convert to one-hot
+        # convert to one-hot representation
         batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), num_classes), 2,
                                      batch_inputs[..., None].to(torch.int64), 1).to(device)
 

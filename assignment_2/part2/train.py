@@ -20,23 +20,55 @@ from __future__ import print_function
 import random
 
 import os
+import csv
 import time
 from datetime import datetime
 import argparse
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-import torch.nn.functional as F
-
 from torch.utils.tensorboard import SummaryWriter
 
 from part2.dataset import TextDataset
 from part2.model import TextGenerationModel
+
+
+# Plot summary writer downloads
+def plot_training_results():
+    with open('runs/Nov27_00-27-27_r30n1.lisa.surfsara.nl/accuracy.csv', 'r') as f:
+        reader = csv.reader(f)
+        training_accuracy = list(reader)
+
+    with open('runs/Nov27_00-27-27_r30n1.lisa.surfsara.nl/loss.csv', 'r') as f:
+        reader = csv.reader(f)
+        training_losses = list(reader)
+
+    losses = [float(i[2]) for i in training_losses[1:]]
+    loss_steps = [int(i[1]) for i in training_losses[1:]]
+
+    accuracies = [float(i[2]) for i in training_accuracy[1:]]
+    acc_steps = [int(i[1]) for i in training_accuracy[1:]]
+
+    fig = plt.figure(figsize=(20, 10), dpi=150)
+    fig.suptitle('Accuracy and Loss during training', fontsize=36)
+
+    for i, (value, steps, title) in enumerate([(accuracies, acc_steps, "Accuracy"), (losses, loss_steps, "Loss")]):
+        ax = fig.add_subplot(1, 2, i+1)
+        ax.plot(steps, value, linewidth=2, color="tomato", label="Loss")
+
+        ax.tick_params(labelsize=16)
+
+        ax.set_xlabel('Steps', fontsize=24)
+        ax.set_ylabel('{}'.format(title), fontsize=24)
+
+    plt.savefig("part2/figures/acc_and_loss.png")
+    plt.show()
 
 
 def sample_from_model(config, step, model, dataset):

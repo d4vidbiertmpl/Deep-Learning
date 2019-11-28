@@ -34,5 +34,5 @@ if __name__ == "__main__":
     # train.plot_results([], True) # Plot the results with the saved model
 
     # For exercise 1.7
-    analyze_grads_over_time(config)
-    # analyze_grads_over_time(config, pretrain_model=True)
+    # analyze_grads_over_time(config)
+    analyze_grads_over_time(config, pretrain_model=True)

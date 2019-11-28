@@ -53,6 +53,7 @@ def analyze_grads_over_time(config, pretrain_model=False):
 
         # Initialize the dataset and data loader (note the +1)
         dataset = PalindromeDataset(config.input_length + 1)
+        # data_loader = DataLoader(dataset, batch_size=1, num_workers=1)
         data_loader = DataLoader(dataset, batch_size=config.batch_size, num_workers=1)
 
         # Setup the loss and optimizer
@@ -63,7 +64,7 @@ def analyze_grads_over_time(config, pretrain_model=False):
         batch_inputs, batch_targets, = next(iter(data_loader))
 
         # convert to one-hot
-        batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), num_classes), 2,
+        batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), config.num_classes), 2,
                                      batch_inputs[..., None].to(torch.int64), 1).to(device)
         batch_targets = batch_targets.to(device)
 
@@ -80,7 +81,10 @@ def analyze_grads_over_time(config, pretrain_model=False):
             grad_l2_norm = average_grads.norm(2).item()
             gradient_norms.append(grad_l2_norm)
 
+        total_norms.append(gradient_norms)
+
     fig = plt.figure(figsize=(15, 10), dpi=150)
+    # fig.suptitle('L2-norm of Gradients across Time Steps (LSTM $b_f = 2$)', fontsize=32)
     fig.suptitle('L2-norm of Gradients across Time Steps', fontsize=36)
     ax = fig.add_subplot(1, 1, 1)
     ax.plot(total_norms[0], linewidth=2, color="tomato", label="RNN")
@@ -89,7 +93,8 @@ def analyze_grads_over_time(config, pretrain_model=False):
 
     ax.set_xlabel('Time Step', fontsize=24)
     ax.set_ylabel('Gradient Norm (L2)', fontsize=24)
-    ax.legend()
+    ax.legend(prop={'size': 16})
 
     plt.savefig("part1/figures/Analyze_gradients_pt_{}.png".format(str(pretrain_model)))
+    # plt.savefig("part1/figures/Analyze_gradients_pt_{}_bias_2.png".format(str(pretrain_model)))
     plt.show()
