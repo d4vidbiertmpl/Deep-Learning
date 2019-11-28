@@ -27,8 +27,10 @@ if __name__ == "__main__":
     config = parser.parse_args()
 
     # Train the model
-    # train.train(config)
-    train.local_experiments(config)
+    train.train(config)
+    # train.local_experiments(config)
+
+    # train.plot_results([], True)
 
     # analyze_grads_over_time(config)
     # analyze_grads_over_time(config, pretrain_model=True)

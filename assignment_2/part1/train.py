@@ -60,7 +60,7 @@ def local_experiments(config):
                 np.random.seed(seed)
                 config.input_length = t
                 config.model_type = m
-                print("LR", learning_rates[j])
+                print("LR: ", learning_rates[j])
                 config.learning_rate = learning_rates[j]
 
                 model = train(config)
@@ -72,17 +72,29 @@ def local_experiments(config):
             with open('part_1_exp.pkl', 'wb') as f:
                 pickle.dump(accuracies_over_t, f)
 
-    for i, m in enumerate(models):
+    plot_results(accuracies_over_t)
+
+
+def plot_results(accuracies_over_t, load_pickle=False):
+    p_lengths = [5, 10, 15, 20, 25, 30, 50, 100, 150]
+
+    if load_pickle:
+        with open('part_1_exp.pkl', 'rb') as f:
+            accuracies_over_t = pickle.load(f)
+
+    for i, m in enumerate(["RNN", "LSTM"]):
         means, stds = [i[0] for i in accuracies_over_t[i]], [i[1] for i in accuracies_over_t[i]]
 
-        fig = plt.figure(figsize=(25, 10), dpi=200)
-        fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(m), fontsize=40)
+        fig = plt.figure(figsize=(20, 10), dpi=300)
+        fig.suptitle('{}: Accuracies over Palindrome Lengths'.format(m), fontsize=36)
         ax = fig.add_subplot(1, 1, 1)
         ax.errorbar(x=p_lengths, y=means, yerr=stds, fmt='-o', linewidth=4, color="g")
         ax.set_xticks(p_lengths)
 
-        ax.set_xlabel('$Palindrome Length$', fontsize=28)
-        ax.set_ylabel('$Accuracy$', fontsize=28)
+        ax.tick_params(labelsize=16)
+
+        ax.set_xlabel('Palindrome Length', fontsize=24)
+        ax.set_ylabel('Accuracy', fontsize=24)
 
         plt.savefig("part1/figures/{}_accuracies_over_t.png".format(m))
         plt.show()
@@ -151,10 +163,8 @@ def train(config):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
-    # Train losses
-    losses = []
-    # Train accuracies
-    accuracies = []
+    # Train losses and accuracies for debugging purposes
+    accuracies, losses = [], []
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
@@ -197,7 +207,7 @@ def train(config):
                 accuracy, loss
             ))
 
-            if step > min_steps and (np.absolute(np.mean(losses[-100:-2]) - losses[-1]) < epsilon):
+            if step > min_steps and (np.absolute(np.mean(losses[-102:-2]) - losses[-1]) < epsilon):
                 print("Convergence reached after {} steps".format(step))
                 break
 
@@ -207,7 +217,6 @@ def train(config):
             break
 
     print('Done training.')
-
     return model
 
 
@@ -221,7 +230,7 @@ if __name__ == "__main__":
     # Model params
     parser.add_argument('--model_type', type=str, default="RNN", help="Model type, should be 'RNN' or 'LSTM'")
     parser.add_argument('--input_length', type=int, default=10, help='Length of an input sequence')
-    parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
+    parser.add_argument('--input_dim', type=int, default=10, help='Dimensionality of input sequence')
     parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
     parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
