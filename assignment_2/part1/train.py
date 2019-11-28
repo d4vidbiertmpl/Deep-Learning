@@ -82,6 +82,9 @@ def plot_results(accuracies_over_t, load_pickle=False):
         with open('part_1_exp.pkl', 'rb') as f:
             accuracies_over_t = pickle.load(f)
 
+    print(accuracies_over_t[0])
+    print(accuracies_over_t[1])
+
     for i, m in enumerate(["RNN", "LSTM"]):
         means, stds = [i[0] for i in accuracies_over_t[i]], [i[1] for i in accuracies_over_t[i]]
 
@@ -171,6 +174,7 @@ def train(config):
         # Only for time measurement of step through network
         t1 = time.time()
 
+        # convert to one-hot
         batch_inputs = torch.scatter(torch.zeros(*batch_inputs.size(), num_classes), 2,
                                      batch_inputs[..., None].to(torch.int64), 1).to(device)
 
