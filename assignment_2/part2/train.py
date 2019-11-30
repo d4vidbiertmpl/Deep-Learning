@@ -17,8 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import random
-
 import os
 import csv
 import time
@@ -59,13 +57,16 @@ def plot_training_results():
     fig.suptitle('Accuracy and Loss during training', fontsize=36)
 
     for i, (value, steps, title) in enumerate([(accuracies, acc_steps, "Accuracy"), (losses, loss_steps, "Loss")]):
-        ax = fig.add_subplot(1, 2, i+1)
+        ax = fig.add_subplot(1, 2, i + 1)
         ax.plot(steps, value, linewidth=2, color="tomato", label="Loss")
 
         ax.tick_params(labelsize=16)
 
         ax.set_xlabel('Steps', fontsize=24)
         ax.set_ylabel('{}'.format(title), fontsize=24)
+
+    if not os.path.exists('part2/figures/'):
+        os.makedirs('part2/figures/')
 
     plt.savefig("part2/figures/acc_and_loss.png")
     plt.show()
@@ -105,8 +106,6 @@ def generate_from_model(model, dataset, T=30, sampling_type="greedy", tau=1.0, d
     final_sequence = [sample_char.item()]
 
     for t in range(T - 1):
-
-        # sample_char = F.one_hot(sample_char, vocab_size).type(torch.FloatTensor).to(device)
 
         with torch.no_grad():
             model_output, hidden = model.forward(sample_char, hidden)
@@ -212,7 +211,7 @@ def train(config):
             break
 
     print('Done training.')
-    torch.save(model, "GEN_LSTM.pth")
+    torch.save(model, "trained_model_part2.pth")
     writer.close()
 
 

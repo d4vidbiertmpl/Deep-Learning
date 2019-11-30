@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import pickle
 import argparse
 import time
@@ -29,8 +30,6 @@ import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch import optim
-
-import torch.nn.functional as F
 
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
@@ -98,6 +97,9 @@ def plot_results(accuracies_over_t, load_pickle=False):
 
         ax.set_xlabel('Palindrome Length', fontsize=24)
         ax.set_ylabel('Accuracy', fontsize=24)
+
+        if not os.path.exists('part1/figures/'):
+            os.makedirs('part1/figures/')
 
         plt.savefig("part1/figures/{}_accuracies_over_t.png".format(m))
         plt.show()

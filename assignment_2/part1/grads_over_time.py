@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 import torch
 from torch.utils.data import DataLoader
@@ -75,13 +76,17 @@ def analyze_grads_over_time(config, pretrain_model=False):
         loss.backward()
 
         gradient_norms = []
-        for i, (t, h) in enumerate(model.h_states[:-1]):
+        for i, (t, h) in enumerate(reversed(model.h_states)):
             _grad = h.grad  # (batch_size x hidden_dim)
             average_grads = torch.mean(_grad, dim=0)  # Calculate average gradient to get more stable estimate
             grad_l2_norm = average_grads.norm(2).item()
             gradient_norms.append(grad_l2_norm)
 
+        print(len(gradient_norms))
         total_norms.append(gradient_norms)
+
+    time_steps = np.arange(150)
+    print(time_steps)
 
     fig = plt.figure(figsize=(15, 10), dpi=150)
     # fig.suptitle('L2-norm of Gradients across Time Steps (LSTM $b_f = 2$)', fontsize=32)
@@ -90,10 +95,15 @@ def analyze_grads_over_time(config, pretrain_model=False):
     ax.plot(total_norms[0], linewidth=2, color="tomato", label="RNN")
     ax.plot(total_norms[1], linewidth=2, color="darkblue", label="LSTM")
     ax.tick_params(labelsize=16)
+    ax.set_xticks(time_steps[::10])
+    ax.set_xticklabels(time_steps[::10])
 
-    ax.set_xlabel('Time Step', fontsize=24)
+    ax.set_xlabel('Backpropagation Step', fontsize=24)
     ax.set_ylabel('Gradient Norm (L2)', fontsize=24)
     ax.legend(prop={'size': 16})
+
+    if not os.path.exists('part1/figures/'):
+        os.makedirs('part1/figures/')
 
     plt.savefig("part1/figures/Analyze_gradients_pt_{}.png".format(str(pretrain_model)))
     # plt.savefig("part1/figures/Analyze_gradients_pt_{}_bias_2.png".format(str(pretrain_model)))

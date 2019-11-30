@@ -30,9 +30,8 @@ if __name__ == "__main__":
     # train.train(config)
 
     # Run the experiments for exercise 1.3 and 1.6
-    # train.local_experiments(config)
+    train.local_experiments(config)
     # train.plot_results([], True) # Plot the results with the saved model
 
     # For exercise 1.7
     # analyze_grads_over_time(config)
-    analyze_grads_over_time(config, pretrain_model=True)
