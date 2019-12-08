@@ -108,3 +108,4 @@ venv.bak/
 
 # data
 assignment_1/code/cifar10/cifar-10-batches-py/*
+assignment_3/templates/data/*
