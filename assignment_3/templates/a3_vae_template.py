@@ -81,7 +81,7 @@ class VAE(nn.Module):
         mu, std, log_var = self.encoder(input)
 
         # randn => N(0, I)
-        epsilon = torch.randn(mu.size())
+        epsilon = torch.randn(mu.size()).to(self.device)
         latent_z = mu + std * epsilon
         x_hat = self.decoder(latent_z)
 
@@ -108,7 +108,7 @@ class VAE(nn.Module):
 
         with torch.no_grad():
             im_means = self.decoder(random_latents.to(self.device))
-        sampled_ims = torch.rand(im_means.size()) < im_means
+        sampled_ims = torch.rand(im_means.size()).to(self.device) < im_means.to(self.device)
 
         return sampled_ims, im_means
 
