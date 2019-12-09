@@ -17,7 +17,7 @@ class Encoder(nn.Module):
     def __init__(self, input_dim=784, hidden_dim=500, z_dim=20):
         super().__init__()
 
-        self.linear_embed = nn.Sequential(
+        self.embed_trans = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU()
         )
@@ -32,7 +32,8 @@ class Encoder(nn.Module):
         that any constraints are enforced.
         """
 
-        embed = self.linear_embed(input)
+        embed = self.embed_trans(input)
+        # Log variance due to definitions in Kingma & Welling
         mean, log_var = self.linear_mu(embed), self.linear_var(embed)
 
         return mean, torch.sqrt(torch.exp(log_var)), log_var
@@ -177,7 +178,7 @@ def plot_grid(generated_grids, z_dim, n_plots):
     if not os.path.exists('figures/'):
         os.makedirs('figures/')
 
-    plt.savefig("figures/sample_model_z{}.pdf".format(z_dim))
+    plt.savefig("figures/sample_model_z{}.png".format(z_dim))
     plt.show()
 
 
@@ -209,7 +210,7 @@ def plot_manifold(model, n_samples, device):
     if not os.path.exists('figures/'):
         os.makedirs('figures/')
 
-    plt.savefig("figures/manifold.pdf")
+    plt.savefig("figures/manifold.png")
     plt.show()
 
 
@@ -252,7 +253,7 @@ def main():
     if ARGS.plot_manifold:
         plot_manifold(model, n_samples, device)
     else:
-        save_elbo_plot(train_curve, val_curve, 'elbo.pdf')
+        save_elbo_plot(train_curve, val_curve, 'elbo.png')
         plot_grid(grids, ARGS.zdim, n_plots)
 
 
@@ -262,7 +263,7 @@ if __name__ == "__main__":
                         help='max number of epochs')
     parser.add_argument('--zdim', default=20, type=int,
                         help='dimensionality of latent space')
-    parser.add_argument('--n_samples', default=20, type=int,
+    parser.add_argument('--n_samples', default=36, type=int,
                         help='number of samples')
     parser.add_argument('--plot_manifold', default=False, type=bool,
                         help='plot latent space manifold')
