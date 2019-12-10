@@ -19,7 +19,7 @@ class Encoder(nn.Module):
 
         self.embed_trans = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
-            nn.ReLU()
+            nn.Tanh()
         )
         self.linear_mu = nn.Linear(hidden_dim, z_dim)
         self.linear_var = nn.Linear(hidden_dim, z_dim)
@@ -84,6 +84,7 @@ class VAE(nn.Module):
         # randn => N(0, I)
         epsilon = torch.randn(mu.size()).to(self.device)
         latent_z = mu + std * epsilon
+
         x_hat = self.decoder(latent_z)
 
         average_negative_elbo = self.calc_neg_elbo_loss(x_hat, input, mu, log_var)
@@ -91,7 +92,7 @@ class VAE(nn.Module):
         return average_negative_elbo
 
     def calc_neg_elbo_loss(self, x_hat, x_target, mu, log_var):
-        eps = 1e-10
+        eps = 1e-12
         log_bernoulli_loss = -torch.sum(x_target * torch.log(x_hat + eps) + (1 - x_target) * torch.log(1 - x_hat + eps),
                                         dim=1)
         KL_loss = 0.5 * torch.sum(log_var.exp() + mu.pow(2) - log_var, dim=1) - 1

@@ -38,7 +38,7 @@ def get_mask():
             if (i + j) % 2 == 0:
                 mask[i, j] = 1
 
-    mask = mask.reshape(1, 28*28)
+    mask = mask.reshape(1, 28 * 28)
     mask = torch.from_numpy(mask)
 
     return mask
@@ -57,7 +57,7 @@ class Coupling(torch.nn.Module):
         # Suggestion: Linear ReLU Linear ReLU Linear.
         self.nn = torch.nn.Sequential(
             None
-            )
+        )
 
         # The nn should be initialized such that the weights of the last layer
         # is zero, so that its initial transform is identity.
@@ -93,7 +93,7 @@ class Flow(nn.Module):
 
         for i in range(n_flows):
             self.layers.append(Coupling(c_in=channels, mask=mask))
-            self.layers.append(Coupling(c_in=channels, mask=1-mask))
+            self.layers.append(Coupling(c_in=channels, mask=1 - mask))
 
         self.z_shape = (channels,)
 
@@ -128,15 +128,15 @@ class Model(nn.Module):
             logdet -= np.log(256) * np.prod(z.size()[1:])
 
             # Logit normalize
-            z = z*(1-alpha) + alpha*0.5
-            logdet += torch.sum(-torch.log(z) - torch.log(1-z), dim=1)
-            z = torch.log(z) - torch.log(1-z)
+            z = z * (1 - alpha) + alpha * 0.5
+            logdet += torch.sum(-torch.log(z) - torch.log(1 - z), dim=1)
+            z = torch.log(z) - torch.log(1 - z)
 
         else:
             # Inverse normalize
             z = torch.sigmoid(z)
-            logdet += torch.sum(torch.log(z) + torch.log(1-z), dim=1)
-            z = (z - alpha*0.5)/(1 - alpha)
+            logdet += torch.sum(torch.log(z) + torch.log(1 - z), dim=1)
+            z = (z - alpha * 0.5) / (1 - alpha)
 
             # Multiply by 256.
             logdet += np.log(256) * np.prod(z.size()[1:])
@@ -151,8 +151,8 @@ class Model(nn.Module):
         z = input
         ldj = torch.zeros(z.size(0), device=z.device)
 
-        z = self.dequantize(z)
-        z, ldj = self.logit_normalize(z, ldj)
+        z = self.dequantize(z)  # discrete => continuous image
+        z, ldj = self.logit_normalize(z, ldj)  #
 
         z, ldj = self.flow(z, ldj)
 
