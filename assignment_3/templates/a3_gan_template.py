@@ -9,6 +9,7 @@ from torchvision import datasets
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 
 class Generator(nn.Module):
@@ -90,6 +91,26 @@ class Discriminator(nn.Module):
     def forward(self, img):
         # return discriminator score for img
         return self.discriminator(img)
+
+
+def interpolate(generator, N=5, steps=7):
+    interpolations = []
+    for n in range(N):
+        position_a = torch.randn((1, generator.latent_dim)).to(args.device)
+        position_b = torch.randn((1, generator.latent_dim)).to(args.device)
+
+        # Even worse with ppf
+        # steps_ = torch.FloatTensor(norm.ppf(np.linspace(0, 1, steps + 2))[1:-1])[:, None].to(args.device)
+        steps_ = torch.FloatTensor(np.linspace(0, 1, steps))[:, None].to(args.device)
+
+        # Maybe something wrong here
+        _int_points = steps_ * (position_b - position_a) + position_a
+        _int_points = torch.cat([position_a, _int_points, position_b], dim=0)
+        with torch.no_grad():
+            interpolations.append(generator(_int_points))
+
+    interpolations = torch.stack(interpolations)
+    save_image(interpolations.view(N * (steps + 2), 1, 28, 28), 'figures/interpolations.png', nrow=9, normalize=True)
 
 
 def plot_losses(losses):
@@ -187,31 +208,36 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D):
 
 
 def main():
-    # Create output image directory
-    os.makedirs('images', exist_ok=True)
+    if args.interpolate:
+        generator = torch.load("trained_generator.pth", map_location='cpu')
+        print(generator)
+        interpolate(generator)
+    else:
+        # Create output image directory
+        os.makedirs('images', exist_ok=True)
 
-    # load data
-    dataloader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data/mnist', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))])),
-        batch_size=args.batch_size, shuffle=True)
+        # load data
+        dataloader = torch.utils.data.DataLoader(
+            datasets.MNIST('./data/mnist', train=True, download=True,
+                           transform=transforms.Compose([
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.5,), (0.5,))])),
+            batch_size=args.batch_size, shuffle=True)
 
-    input_dim = np.prod(next(iter(dataloader))[0].size()[1:])
+        input_dim = np.prod(next(iter(dataloader))[0].size()[1:])
 
-    # Initialize models and optimizers
-    generator = Generator(input_dim=input_dim, latent_dim=args.latent_dim).to(args.device)
-    discriminator = Discriminator(input_dim=input_dim).to(args.device)
-    optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr)
-    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr)
+        # Initialize models and optimizers
+        generator = Generator(input_dim=input_dim, latent_dim=args.latent_dim).to(args.device)
+        discriminator = Discriminator(input_dim=input_dim).to(args.device)
+        optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr)
+        optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr)
 
-    # Start training
-    train(dataloader, discriminator, generator, optimizer_G, optimizer_D)
+        # Start training
+        train(dataloader, discriminator, generator, optimizer_G, optimizer_D)
 
-    # You can save your generator here to re-use it to generate images for your
-    # report, e.g.:
-    # torch.save(generator.state_dict(), "mnist_generator.pt")
+        # You can save your generator here to re-use it to generate images for your
+        # report, e.g.:
+        # torch.save(generator.state_dict(), "mnist_generator.pt")
 
 
 if __name__ == "__main__":
@@ -227,6 +253,8 @@ if __name__ == "__main__":
     parser.add_argument('--save_interval', type=int, default=500,
                         help='save every SAVE_INTERVAL iterations')
     parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--interpolate', type=bool, default=False, help="Loads pretrained generator and interpolates "
+                                                                        "between two points in the latent space")
 
     args = parser.parse_args()
 
