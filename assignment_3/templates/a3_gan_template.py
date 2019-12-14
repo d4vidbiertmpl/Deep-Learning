@@ -100,8 +100,7 @@ def interpolate(generator, N=5, steps=7):
         position_b = torch.randn((1, generator.latent_dim)).to(args.device)
 
         # Even worse with ppf
-        # steps_ = torch.FloatTensor(norm.ppf(np.linspace(0, 1, steps + 2))[1:-1])[:, None].to(args.device)
-        steps_ = torch.FloatTensor(np.linspace(0, 1, steps))[:, None].to(args.device)
+        steps_ = torch.FloatTensor(norm.ppf(np.linspace(0, 1, steps + 2))[1:-1])[:, None].to(args.device)
 
         # Maybe something wrong here
         _int_points = steps_ * (position_b - position_a) + position_a

@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from datasets.mnist import mnist
 import os
-from torchvision.utils import make_grid
+from torchvision.utils import save_image
 
 
 def log_prior(x):
@@ -15,7 +15,7 @@ def log_prior(x):
     Compute the elementwise log probability of a standard Gaussian, i.e.
     N(x | mu=0, sigma=1).
     """
-    raise NotImplementedError
+    logp = torch.sum(- 0.5 * np.log(2 * np.pi) - 0.5 * x.pow(2), dim=1)
     return logp
 
 
@@ -23,7 +23,7 @@ def sample_prior(size):
     """
     Sample from a standard Gaussian.
     """
-    raise NotImplementedError
+    sample = torch.randn(size)
 
     if torch.cuda.is_available():
         sample = sample.cuda()
@@ -48,6 +48,7 @@ class Coupling(torch.nn.Module):
     def __init__(self, c_in, mask, n_hidden=1024):
         super().__init__()
         self.n_hidden = n_hidden
+        self.c_in = c_in
 
         # Assigns mask to self.mask and creates reference for pytorch.
         self.register_buffer('mask', mask)
@@ -56,7 +57,11 @@ class Coupling(torch.nn.Module):
         # scale variables.
         # Suggestion: Linear ReLU Linear ReLU Linear.
         self.nn = torch.nn.Sequential(
-            None
+            nn.Linear(c_in, self.n_hidden),
+            nn.ReLU(),
+            nn.Linear(self.n_hidden, self.n_hidden),
+            nn.ReLU(),
+            nn.Linear(self.n_hidden, self.c_in * 2)
         )
 
         # The nn should be initialized such that the weights of the last layer
@@ -69,15 +74,20 @@ class Coupling(torch.nn.Module):
         # the input using the mask in self.mask. Transform one part with
         # Make sure to account for the log Jacobian determinant (ldj).
         # For reference, check: Density estimation using RealNVP.
+        h, t = self.nn(self.mask * z).split(self.c_in, dim=1)
 
         # NOTE: For stability, it is advised to model the scale via:
         # log_scale = tanh(h), where h is the scale-output
         # from the NN.
+        log_scale = torch.tanh(h)
 
         if not reverse:
-            raise NotImplementedError
+            # According eq. 9 in the RealNVP paper
+            z = self.mask * z + (1 - self.mask) * (z * torch.exp(log_scale) + t)
+            ldj += torch.sum((1 - self.mask) * log_scale, dim=1)
         else:
-            raise NotImplementedError
+            # According eq. 8 in the RealNVP paper
+            z = self.mask * z + (1 - self.mask) * (z - t) * torch.exp(-log_scale)
 
         return z, ldj
 
@@ -112,6 +122,7 @@ class Model(nn.Module):
     def __init__(self, shape):
         super().__init__()
         self.flow = Flow(shape)
+        self.shape = shape
 
     def dequantize(self, z):
         return z + torch.rand_like(z)
@@ -153,12 +164,11 @@ class Model(nn.Module):
 
         z = self.dequantize(z)  # discrete => continuous image
         z, ldj = self.logit_normalize(z, ldj)  #
-
         z, ldj = self.flow(z, ldj)
 
         # Compute log_pz and log_px per example
-
-        raise NotImplementedError
+        log_pz = log_prior(z)
+        log_px = log_pz + ldj
 
         return log_px
 
@@ -167,15 +177,18 @@ class Model(nn.Module):
         Sample n_samples from the model. Sample from prior and create ldj.
         Then invert the flow and invert the logit_normalize.
         """
+
         z = sample_prior((n_samples,) + self.flow.z_shape)
         ldj = torch.zeros(z.size(0), device=z.device)
 
-        raise NotImplementedError
+        # Invert the flow and invert the logit_normalize.
+        z, ldj = self.flow(z, ldj, reverse=True)
+        z, ldj = self.logit_normalize(z, ldj, reverse=True)
 
         return z
 
 
-def epoch_iter(model, data, optimizer):
+def epoch_iter(model, data, optimizer, device):
     """
     Perform a single epoch for either the training or validation.
     use model.training to determine if in 'training mode' or not.
@@ -184,24 +197,43 @@ def epoch_iter(model, data, optimizer):
     log_2 likelihood per dimension) averaged over the complete epoch.
     """
 
-    avg_bpd = None
+    nlls = []
+    for step, (batch_inputs, _) in enumerate(data):
+        log_px = model(batch_inputs.view(-1, model.shape[0]).to(device))
+        nll = -torch.mean(log_px)  # negative log-likelihood
+        nlls.append(nll.item())
+
+        if model.training:
+            optimizer.zero_grad()
+            nll.backward()
+            # Use gradient clipping as discussed on piazza
+            torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=ARGS.max_norm)
+            optimizer.step()
+
+    avg_bpd = np.mean(np.asarray(nlls) / model.shape[0] / np.log(2))
 
     return avg_bpd
 
 
-def run_epoch(model, data, optimizer):
+def run_epoch(model, data, optimizer, device):
     """
     Run a train and validation epoch and return average bpd for each.
     """
     traindata, valdata = data
 
     model.train()
-    train_bpd = epoch_iter(model, traindata, optimizer)
+    train_bpd = epoch_iter(model, traindata, optimizer, device)
 
     model.eval()
-    val_bpd = epoch_iter(model, valdata, optimizer)
+    val_bpd = epoch_iter(model, valdata, optimizer, device)
 
     return train_bpd, val_bpd
+
+
+def plot_grid(model, n_samples, epoch):
+    sampled_z = model.sample(n_samples)
+    save_image(sampled_z.view(n_samples, 1, 28, 28), 'images_nfs/norm_flow_sample_{}.png'.format(epoch),
+               nrow=int(np.sqrt(n_samples)), normalize=True)
 
 
 def save_bpd_plot(train_curve, val_curve, filename):
@@ -217,8 +249,10 @@ def save_bpd_plot(train_curve, val_curve, filename):
 
 def main():
     data = mnist()[:2]  # ignore test split
+    device = ARGS.device
+    n_samples = ARGS.n_samples
 
-    model = Model(shape=[784])
+    model = Model(shape=[784]).to(device)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -227,9 +261,11 @@ def main():
 
     os.makedirs('images_nfs', exist_ok=True)
 
+    plot_grid(model, n_samples, 0)
+
     train_curve, val_curve = [], []
     for epoch in range(ARGS.epochs):
-        bpds = run_epoch(model, data, optimizer)
+        bpds = run_epoch(model, data, optimizer, device)
         train_bpd, val_bpd = bpds
         train_curve.append(train_bpd)
         val_curve.append(val_bpd)
@@ -242,13 +278,21 @@ def main():
         #  Save grid to images_nfs/
         # --------------------------------------------------------------------
 
-    save_bpd_plot(train_curve, val_curve, 'nfs_bpd.pdf')
+        # Same procedure I already implemented in the VAE file
+        if epoch % 5 == 0 or epoch == ARGS.epochs - 1:
+            plot_grid(model, n_samples, epoch + 1)
+
+    save_bpd_plot(train_curve, val_curve, 'nfs_bpd.png')
+    torch.save(model, "trained_norm_flow.pth")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', default=40, type=int,
                         help='max number of epochs')
+    parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--max_norm', type=float, default=10.0)
+    parser.add_argument('--n_samples', default=36, type=int, help='number of samples')
 
     ARGS = parser.parse_args()
 
