@@ -182,10 +182,10 @@ class Model(nn.Module):
         ldj = torch.zeros(z.size(0), device=z.device)
 
         # Invert the flow and invert the logit_normalize.
-        z, ldj = self.flow(z, ldj, reverse=True)
-        z, ldj = self.logit_normalize(z, ldj, reverse=True)
+        x_hat, ldj = self.flow(z, ldj, reverse=True)
+        x_hat, ldj = self.logit_normalize(x_hat, ldj, reverse=True)
 
-        return z
+        return x_hat
 
 
 def epoch_iter(model, data, optimizer, device):
@@ -231,8 +231,8 @@ def run_epoch(model, data, optimizer, device):
 
 
 def plot_grid(model, n_samples, epoch):
-    sampled_z = model.sample(n_samples)
-    save_image(sampled_z.view(n_samples, 1, 28, 28), 'images_nfs/norm_flow_sample_{}.png'.format(epoch),
+    x_hats = model.sample(n_samples)
+    save_image(x_hats.view(n_samples, 1, 28, 28), 'images_nfs/norm_flow_sample_{}.png'.format(epoch),
                nrow=int(np.sqrt(n_samples)), normalize=True)
 
 
