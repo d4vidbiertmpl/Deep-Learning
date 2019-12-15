@@ -99,10 +99,9 @@ def interpolate(generator, N=5, steps=7):
         position_a = torch.randn((1, generator.latent_dim)).to(args.device)
         position_b = torch.randn((1, generator.latent_dim)).to(args.device)
 
-        # Even worse with ppf
         steps_ = torch.FloatTensor(norm.ppf(np.linspace(0, 1, steps + 2))[1:-1])[:, None].to(args.device)
 
-        # Maybe something wrong here
+        # Maybe something wrong here?!
         _int_points = steps_ * (position_b - position_a) + position_a
         _int_points = torch.cat([position_a, _int_points, position_b], dim=0)
         with torch.no_grad():
@@ -236,7 +235,6 @@ def main():
 
         # You can save your generator here to re-use it to generate images for your
         # report, e.g.:
-        # torch.save(generator.state_dict(), "mnist_generator.pt")
 
 
 if __name__ == "__main__":
@@ -250,7 +248,7 @@ if __name__ == "__main__":
     parser.add_argument('--latent_dim', type=int, default=100,
                         help='dimensionality of the latent space')
     parser.add_argument('--save_interval', type=int, default=500,
-                        help='save every SAVE_INTERVAL iterations')
+                        help='save every save_interval iterations')
     parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
     parser.add_argument('--interpolate', type=bool, default=False, help="Loads pretrained generator and interpolates "
                                                                         "between two points in the latent space")

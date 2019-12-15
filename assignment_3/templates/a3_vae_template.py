@@ -110,6 +110,7 @@ class VAE(nn.Module):
 
         with torch.no_grad():
             im_means = self.decoder(random_latents.to(self.device))
+        # Sample from Bernoulli by sampling from Uniform and use im_means as a threshold
         sampled_ims = torch.rand(im_means.size()).to(self.device) < im_means.to(self.device)
 
         return sampled_ims, im_means
@@ -194,7 +195,7 @@ def plot_manifold(model, n_samples, device):
     nrows = int(np.sqrt(n_samples))
 
     ppf_ = norm.ppf(np.linspace(0, 1, nrows + 2))[1:-1]
-    ppf_latents = torch.FloatTensor(np.array([[i, j] for i in ppf_ for j in ppf_])).to(device)
+    ppf_latents = torch.FloatTensor(np.array([[m, n] for m in ppf_ for n in ppf_])).to(device)
 
     with torch.no_grad():
         im_means = model.decoder(ppf_latents)

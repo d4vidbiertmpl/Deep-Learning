@@ -15,6 +15,7 @@ def log_prior(x):
     Compute the elementwise log probability of a standard Gaussian, i.e.
     N(x | mu=0, sigma=1).
     """
+    # 1/2 * np.log(2 * np.pi) because D/2 gave me a too large factor
     logp = torch.sum(- 0.5 * np.log(2 * np.pi) - 0.5 * x.pow(2), dim=1)
     return logp
 
@@ -210,6 +211,7 @@ def epoch_iter(model, data, optimizer, device):
             torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=ARGS.max_norm)
             optimizer.step()
 
+    # Change of base from log_e to log_2
     avg_bpd = np.mean(np.asarray(nlls) / model.shape[0] / np.log(2))
 
     return avg_bpd
